@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Abyssal — OSINT Reimagined</title>
+<meta name="description" content="Search less, discover more. One search across 30+ data sources.">
+<link rel="icon" href="assets/logo-red.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: { 50:'#fef2f2',100:'#fee2e2',200:'#fecaca',300:'#fca5a5',400:'#f87171',500:'#ef4444',600:'#dc2626',700:'#b91c1c',800:'#991b1b',900:'#7f1d1d'},
+          secondary: { 50:'#fff1f2',100:'#ffe4e6',200:'#fecdd3',300:'#fda4af',400:'#fb7185',500:'#f43f5e',600:'#e11d48',700:'#be123c'},
+        },
+        fontFamily: { sans: ['Poppins','sans-serif'] }
+      }
+    }
+  }
+</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-black text-white">
+
+<canvas id="particles-bg"></canvas>
+<div id="mouse-glow"></div>
+
+<!-- ============ HEADER ============ -->
+<header id="siteHeader" class="fixed top-0 inset-x-0 z-50 border-b border-transparent transition-all duration-300">
+  <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5">
+      <img src="assets/logo-red.png" alt="Abyssal" class="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]">
+      <span class="text-xl font-semibold tracking-tight">Abyssal</span>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-8 text-sm text-gray-300">
+      <a href="#" class="hover:text-white transition-colors">Home</a>
+      <a href="#features" class="hover:text-white transition-colors">Features</a>
+      <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+      <a href="#contact" class="hover:text-white transition-colors">Contact</a>
+    </nav>
+
+    <div class="hidden md:flex items-center gap-3">
+      <a href="dashboard.html" class="px-4 py-2 text-sm font-medium rounded-lg border border-white/15 hover:bg-white/5 transition-colors">Login</a>
+      <a href="dashboard.html" class="px-4 py-2 text-sm font-semibold rounded-lg bg-primary-600 hover:bg-primary-500 transition-colors">Get Started</a>
+    </div>
+
+    <button id="menuBtn" class="md:hidden p-2 text-gray-300">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="mobilePanel" class="mobile-panel md:hidden bg-black/95 border-b border-white/10">
+    <div class="px-6 py-4 flex flex-col gap-4 text-sm text-gray-300">
+      <a href="#">Home</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#contact">Contact</a>
+      <div class="flex gap-3 pt-2">
+        <a href="dashboard.html" class="flex-1 text-center px-4 py-2 rounded-lg border border-white/15">Login</a>
+        <a href="dashboard.html" class="flex-1 text-center px-4 py-2 rounded-lg bg-primary-600">Get Started</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="relative pt-40 pb-28 overflow-hidden">
+  <div class="absolute inset-0 bg-grid"></div>
+  <div class="glow w-[600px] h-[400px] bg-primary-600/25 -top-40 left-1/2 -translate-x-1/2"></div>
+  <div class="glow w-[300px] h-[300px] bg-secondary-500/15 top-20 right-10"></div>
+
+  <div class="relative max-w-4xl mx-auto px-6 text-center">
+    <a href="#" class="inline-flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full pill text-xs text-gray-300 mb-8 hover:border-primary-400/40 transition-colors">
+      <span class="px-2 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold tracking-wide">NEW</span>
+      Investigate with AI using Alice &amp; Abyssal MCP
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+
+    <h1 class="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05]">
+      Search less,<br>
+      <span class="text-primary-400">discover more.</span>
+    </h1>
+
+    <p class="mt-6 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+      One search across 30+ data sources. Person lookups, breach databases, network recon, and social intelligence: every thread of an investigation in one place.
+    </p>
+
+    <div class="mt-9 max-w-xl mx-auto">
+      <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] pl-5 pr-2 py-2.5">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-500 shrink-0"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" placeholder="Search names, emails, IPs..." class="flex-1 bg-transparent outline-none text-sm placeholder-gray-500 py-1.5">
+        <button class="w-9 h-9 shrink-0 rounded-full bg-primary-600 hover:bg-primary-500 flex items-center justify-center transition-colors">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center justify-center gap-3 text-[11px] tracking-wider text-gray-500 uppercase">
+      <span>No subscription</span>
+      <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+      <span>Credits never expire</span>
+      <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+      <span>Full API access</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATEMENT ============ -->
+<section class="py-20">
+  <div class="max-w-4xl mx-auto px-6 reveal">
+    <p class="text-3xl sm:text-4xl font-semibold leading-snug text-white">
+      You can't investigate what you can't see. Breach dumps, social profiles, public records, and exposed infrastructure are all connected because every interaction leaves traces. Abyssal pulls every thread into one view.
+    </p>
+  </div>
+</section>
+
+<!-- ============ FEATURES GRID ============ -->
+<section id="features" class="py-16">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold">Turn open sources into leads.</h2>
+      <p class="mt-3 text-gray-400 max-w-xl">From person lookups to deep web searches, everything you need for comprehensive OSINT investigations.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- card template -->
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><circle cx="18" cy="8" r="2.5"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">USA Person Lookup</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Search names, phones, and addresses to build out a full US identity profile including relatives and past locations</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/><circle cx="17" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Breach Databases</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Query multiple breach and leak databases at once across emails, usernames, IPs, and passwords in a single search</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Image Geolocation</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Upload a photo and let AI narrow down where it was taken using landmarks, signage, terrain, and street-level imagery</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M14 9l4 2-4 2"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Reverse Face Search</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Upload a photo and scan billions of indexed images to find matching faces across social profiles, news articles, and public web pages</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M6 8.5C7 6.5 9.3 5.5 12 5.5s5 1 6 3M5 15c0 2 1 4 2.5 4.5L8 17M19 15c0 2-1 4-2.5 4.5L16 17"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Discord Intelligence</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Look up a Discord ID to surface profile info, connected accounts, shared servers, mod history, and linked profiles</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l7 7-7 9M11 4h9v9"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Roblox Search</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Pull a full Roblox profile with past usernames, breach hits, safety flags, and detected alt accounts</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Username Search</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Check a username across 40+ platforms and get back only the accounts that actually exist</p>
+      </div>
+
+      <div class="card reveal p-6">
+        <div class="w-10 h-10 rounded-lg bg-primary-500/10 border border-primary-400/20 flex items-center justify-center mb-4 text-primary-300">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><circle cx="7" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r=".8" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <h3 class="font-semibold mb-2">Network Recon</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">Get DNS records, WHOIS data, Shodan banners, SSL certificate history, and port scan results from a single IP or domain</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DEMOS ============ -->
+<section class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold">What a single search surfaces.</h2>
+      <p class="mt-3 text-gray-400">Previews below mirror the dashboard result-card structure and field labels.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Web DBs -->
+      <div class="card reveal p-6">
+        <h3 class="font-semibold text-lg mb-1">Web DBs</h3>
+        <p class="text-sm text-gray-400 mb-5">Every breach database queried together, grouped by source.</p>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 p-4 mb-3">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-md bg-primary-500/15 flex items-center justify-center text-primary-300">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium">LeakCheck</p>
+                <p class="text-[11px] text-gray-500">2 breaches · 2 sources</p>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-lg border border-white/10 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm">Collection #1</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-secondary-500/15 text-secondary-300 border border-secondary-400/20">Compilation</span>
+            </div>
+            <div class="flex gap-2 mb-2">
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">@ email</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">🔑 password</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">👤 name</span>
+            </div>
+            <p class="text-[11px] text-gray-500 font-mono">Breach date: January 12, 2019</p>
+            <p class="text-[11px] text-gray-400 font-mono mt-1">email <span class="text-primary-300">j.harper@proton.me</span></p>
+            <p class="text-[11px] text-gray-400 font-mono">password <span class="text-red-300">s3attle!2019</span></p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-7 h-7 rounded-md bg-primary-500/15 flex items-center justify-center text-primary-300">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium">Snusbase</p>
+              <p class="text-[11px] text-gray-500">1 breach · 1 source</p>
+            </div>
+          </div>
+          <div class="rounded-lg border border-white/10 p-3">
+            <span class="text-sm">Naz.API</span>
+            <div class="flex gap-2 mt-2">
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">@ email</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">👤 username</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">🌐 ip</span>
+            </div>
+            <p class="text-[11px] text-gray-500 font-mono mt-2">Breach date: September 28, 2023</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Username Search -->
+      <div class="card reveal p-6">
+        <h3 class="font-semibold text-lg mb-1">Username Search</h3>
+        <p class="text-sm text-gray-400 mb-5">Platform cards with display name, bio, and follower counts.</p>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+              <span class="text-sm font-medium">Username Results</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-primary-500/15 text-primary-300 border border-primary-400/20">3 platforms</span>
+          </div>
+
+          <div class="rounded-lg border border-white/10 p-3 mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-sky-400 flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M22 5.9c-.7.3-1.5.6-2.3.7.8-.5 1.5-1.3 1.8-2.3-.8.5-1.7.8-2.6 1a4.1 4.1 0 00-7 3.7A11.6 11.6 0 013 4.9a4.1 4.1 0 001.3 5.5c-.6 0-1.3-.2-1.8-.5v.1c0 2 1.4 3.6 3.3 4a4.2 4.2 0 01-1.9.1 4.1 4.1 0 003.8 2.9A8.3 8.3 0 012 18.6a11.6 11.6 0 006.3 1.8c7.5 0 11.7-6.3 11.7-11.7v-.5c.8-.6 1.5-1.3 2-2.1z"/></svg>
+                Twitter
+              </span>
+              <span class="text-[11px] text-gray-500 flex items-center gap-1">View <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></span>
+            </div>
+            <p class="text-sm font-medium">Morgan Harper</p>
+            <p class="text-[11px] text-gray-500 mb-1">@mharper</p>
+            <p class="text-[11px] text-gray-400">OSINT &amp; threat intel. Opinions my own.</p>
+            <div class="flex gap-4 mt-2 text-[11px] text-gray-500">
+              <span><b class="text-white">14,202</b> followers</span>
+              <span><b class="text-white">214</b> following</span>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-white/10 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-semibold text-secondary-400 flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1-1.5-1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.5-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg>
+                GitHub
+              </span>
+              <span class="text-[11px] text-gray-500 flex items-center gap-1">View <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></span>
+            </div>
+            <p class="text-sm font-medium">Morgan Harper</p>
+            <p class="text-[11px] text-gray-500 mb-1">@mharper</p>
+            <p class="text-[11px] text-gray-400">infra &amp; security tooling</p>
+            <div class="flex gap-4 mt-2 text-[11px] text-gray-500">
+              <span><b class="text-white">861</b> followers</span>
+              <span><b class="text-white">42</b> following</span>
+              <span>public repos <b class="text-white">37</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geolocation -->
+      <div class="card reveal p-6">
+        <h3 class="font-semibold text-lg mb-1">Geolocation Intelligence</h3>
+        <p class="text-sm text-gray-400 mb-5">Map, certainty, coordinates, and analysis reasoning.</p>
+
+        <div class="rounded-xl border border-white/10 overflow-hidden">
+          <div class="h-56 bg-[radial-gradient(circle_at_30%_30%,#1e1b3a,transparent_60%),radial-gradient(circle_at_70%_70%,#141221,transparent_60%)] bg-black relative flex items-center justify-center">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" class="opacity-60"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+          </div>
+          <div class="flex items-center justify-between px-4 py-3 bg-black/40 border-t border-white/10">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <div>
+                <p class="text-sm">Elizabeth Tower, London</p>
+                <p class="text-[11px] text-gray-500 font-mono">51.5007, -0.1246</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">High certainty</span>
+              <span class="text-[11px] text-gray-500 flex items-center gap-1">Maps <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Recon -->
+      <div class="card reveal p-6">
+        <h3 class="font-semibold text-lg mb-1">Network Recon</h3>
+        <p class="text-sm text-gray-400 mb-5">Open ports, service banners, and hostnames from Shodan.</p>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 p-4">
+          <div class="flex items-center gap-2 text-[11px] tracking-wider text-gray-500 mb-3 uppercase">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/></svg>
+            Top ports
+          </div>
+          <div class="space-y-2 mb-4 text-sm">
+            <div class="flex justify-between"><span class="text-gray-300">Port 443</span><span class="text-gray-500">12</span></div>
+            <div class="flex justify-between"><span class="text-gray-300">Port 80</span><span class="text-gray-500">9</span></div>
+            <div class="flex justify-between"><span class="text-gray-300">Port 22</span><span class="text-gray-500">5</span></div>
+          </div>
+
+          <div class="rounded-lg border border-white/10 p-3 mb-3">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-md bg-primary-500/15 flex items-center justify-center text-primary-300">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+              </div>
+              <span class="text-sm font-mono">104.21.48.23</span>
+              <span class="text-[10px] pill rounded-full px-2 py-0.5 text-gray-400">443/tcp</span>
+              <span class="text-[11px] text-gray-500 ml-auto">Ashburn, VA, United States</span>
+            </div>
+            <div class="flex gap-2 flex-wrap mb-2">
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">nginx</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">Ubuntu</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">Cloudflare, Inc.</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400">AS13335</span>
+            </div>
+            <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-1">Hostnames</p>
+            <div class="flex gap-2">
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400 font-mono">target.io</span>
+              <span class="text-[11px] pill rounded-full px-2 py-1 text-gray-400 font-mono">www.target.io</span>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-white/10 p-3">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-md bg-primary-500/15 flex items-center justify-center text-primary-300">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4.5"/><path d="M12 12.5V21M9 21h6"/></svg>
+              </div>
+              <span class="text-sm font-mono">45.79.112.203</span>
+              <span class="text-[10px] pill rounded-full px-2 py-0.5 text-gray-400">22/tcp</span>
+              <span class="text-[11px] text-gray-500 ml-auto">Fremont, CA, United States</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI SECTION ============ -->
+<section class="py-24">
+  <div class="max-w-4xl mx-auto px-6 text-center reveal">
+    <h2 class="text-3xl sm:text-4xl font-bold">Investigate with AI.</h2>
+    <p class="mt-4 text-gray-400 max-w-2xl mx-auto">Bring Abyssal's data into the tools you already work in with a purpose-built OSINT assistant, and a server that plugs into any MCP client.</p>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Alice -->
+    <div class="card reveal p-6 flex flex-col">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.6 5.5L19 9l-5.4 1.5L12 16l-1.6-5.5L5 9l5.4-1.5L12 2z"/></svg>
+        </div>
+        <h3 class="font-semibold text-lg">Alice, your OSINT assistant</h3>
+      </div>
+      <p class="text-sm text-gray-400 mb-5">A working investigator's assistant: focused, precise, useful. Alice runs Abyssal's tools for you, then turns the results into clear reports.</p>
+
+      <div class="rounded-xl border border-white/10 bg-black/40 p-4 flex-1 flex flex-col gap-3">
+        <div class="self-end max-w-[80%] bg-primary-600 text-white text-sm rounded-2xl rounded-br-sm px-4 py-2">
+          Profile @mharper across every platform
+        </div>
+        <div class="self-start max-w-[85%] text-sm text-gray-300">
+          I'll check that handle across 150+ platforms and pull back only the accounts that exist.
+        </div>
+
+        <div class="rounded-lg border border-white/10 p-3 mt-1">
+          <div class="flex items-center gap-2 mb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
+            <span class="text-sm">Permission required</span>
+          </div>
+          <p class="text-[12px] text-gray-400 mb-3">Alice wants to run <span class="pill rounded px-1.5 py-0.5 text-primary-300">Username Search</span> · 1 credit</p>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1.5 rounded-lg bg-primary-600 text-xs font-medium flex items-center gap-1">✓ Allow</button>
+            <button class="px-3 py-1.5 rounded-lg border border-white/15 text-xs font-medium flex items-center gap-1">✕ Deny</button>
+            <button class="px-3 py-1.5 rounded-lg text-xs text-gray-400 ml-auto flex items-center gap-1">⚡ Always allow</button>
+          </div>
+        </div>
+
+        <div class="mt-auto flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5">
+          <span class="text-xs text-gray-500">Message Alice...</span>
+          <span class="ml-auto text-[11px] pill rounded-full px-2 py-1 text-gray-400 flex items-center gap-1">⚖ Medium ⌄</span>
+          <span class="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"></span>
+          <button class="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center shrink-0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="mt-4 w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-sm flex items-center justify-center gap-2">
+        Open Alice <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+
+    <!-- MCP -->
+    <div class="card reveal p-6 flex flex-col">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 3-3 3-3-3z"/><path d="M12 16l3 3-3 3-3-3z"/><path d="M2 12l3-3 3 3-3 3z"/><path d="M16 12l3-3 3 3-3 3z"/></svg>
+        </div>
+        <h3 class="font-semibold text-lg">Connect any MCP client</h3>
+      </div>
+      <p class="text-sm text-gray-400 mb-5">Run OSINT investigations from your AI client. Point any MCP-compatible client at Abyssal.</p>
+
+      <div class="rounded-xl border border-white/10 bg-black/40 p-4 flex-1 flex flex-col">
+        <div class="flex items-center gap-1.5 mb-3">
+          <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+          <span class="ml-2 text-[11px] text-gray-500 font-mono">connect.sh</span>
+        </div>
+
+        <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-1">Endpoint</p>
+        <div class="rounded-lg border border-white/10 px-3 py-2 mb-4 font-mono text-xs text-primary-300">https://mcp.abyssal.app/mcp</div>
+
+        <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-1">Claude Code</p>
+        <div class="rounded-lg border border-white/10 px-3 py-2 mb-4 font-mono text-xs leading-relaxed">
+          <span class="text-gray-500">$</span> <span class="fn">claude mcp add</span> --transport http abyssal <span class="str">https://mcp.abyssal.app/mcp</span>
+        </div>
+
+        <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-1">Any client (config)</p>
+        <div class="rounded-lg border border-white/10 px-3 py-2 font-mono text-xs leading-relaxed">
+          {<br>
+          &nbsp;&nbsp;<span class="prop">"mcpServers"</span>: {<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="prop">"abyssal"</span>: { <span class="prop">"url"</span>: <span class="str">"https://mcp.abyssal.app/mcp"</span> }<br>
+          &nbsp;&nbsp;}<br>
+          }
+        </div>
+      </div>
+
+      <button class="mt-4 w-full py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-colors text-sm flex items-center justify-center gap-2">
+        Connect a client <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg>
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ SOURCES / STATS ============ -->
+<section class="py-24">
+  <div class="max-w-4xl mx-auto px-6 text-center reveal">
+    <h2 class="text-3xl sm:text-4xl font-bold">27+ sources. One query.</h2>
+    <p class="mt-4 text-gray-400 max-w-2xl mx-auto">Breach databases, data brokers, social platforms, and network infrastructure, all queried together, so nothing slips through.</p>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-6 mt-12 grid grid-cols-1 sm:grid-cols-3 gap-5">
+    <div class="reveal rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 p-8 relative overflow-hidden">
+      <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1" class="absolute -bottom-2 -right-2 opacity-20"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg>
+      <p class="text-4xl font-bold">30+</p>
+      <p class="mt-2 text-xs tracking-wider uppercase text-white/80">Data sources integrated</p>
+    </div>
+    <div class="reveal rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 p-8 relative overflow-hidden">
+      <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1" class="absolute -bottom-2 -right-2 opacity-20"><path d="M4 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2z"/></svg>
+      <p class="text-4xl font-bold">600B+</p>
+      <p class="mt-2 text-xs tracking-wider uppercase text-white/80">Records searchable</p>
+    </div>
+    <div class="reveal rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 p-8 relative overflow-hidden">
+      <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1" class="absolute -bottom-2 -right-2 opacity-20"><circle cx="10" cy="10" r="6"/><line x1="20" y1="20" x2="15" y2="15"/></svg>
+      <p class="text-4xl font-bold">130K+</p>
+      <p class="mt-2 text-xs tracking-wider uppercase text-white/80">Investigations completed</p>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-6 mt-10 flex flex-wrap justify-center gap-3 reveal">
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>LeakCheck</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Snusbase</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>IntelX</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>SEON</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>CloudSINT</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Shodan</span>
+    <br class="w-full">
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>VirusTotal</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Discord</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Roblox</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>GitHub</span>
+    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>DNS / WHOIS</span>
+    <span class="rounded-full px-4 py-2 text-sm text-gray-500">and many more</span>
+  </div>
+</section>
+
+<!-- ============ DEVELOPER ============ -->
+<section class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="reveal mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold">Build it into your stack.</h2>
+      <p class="mt-3 text-gray-400 max-w-2xl">Automate investigations, enrich your own data, and wire Abyssal into your tooling with a typed SDK, a CLI, and a fully documented REST API.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-14 reveal">
+      <div class="flex gap-3">
+        <div class="w-9 h-9 shrink-0 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9l3 3-3 3M13 15h4"/></svg>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-1">Typed SDK</h3>
+          <p class="text-sm text-gray-400">The official @abyssalosint/sdk wraps every endpoint with full TypeScript types and handles auth for you.</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <div class="w-9 h-9 shrink-0 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-1">REST API</h3>
+          <p class="text-sm text-gray-400">Every tool in the dashboard is available over a clean, documented HTTP API with an OpenAPI specification.</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <div class="w-9 h-9 shrink-0 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 5l3 3M13 8l2 2"/></svg>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-1">Scoped API keys</h3>
+          <p class="text-sm text-gray-400">Mint keys with per-feature permissions and expirations straight from your dashboard.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- SDK -->
+      <div class="card reveal p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3"/></svg>
+          </div>
+          <h3 class="font-semibold">Typed SDK</h3>
+        </div>
+        <p class="text-sm text-gray-400 mb-4">Drop the SDK into any Node or Bun project and get full TypeScript autocomplete for every search.</p>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 overflow-hidden mb-4">
+          <div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/10">
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="ml-2 text-[11px] text-gray-500 font-mono">discord.ts</span>
+          </div>
+          <pre class="p-4 text-xs font-mono leading-relaxed overflow-x-auto"><code><span class="kw">import</span> { Abyssal } <span class="kw">from</span> <span class="str">'@abyssalosint/sdk'</span>;
+
+<span class="kw">const</span> abyssal = <span class="kw">new</span> <span class="fn">Abyssal</span>({
+  apiKey: process.env.ABYSSAL_API_KEY,
+});
+
+<span class="kw">const</span> result = <span class="kw">await</span> abyssal.socials.<span class="fn">searchDiscord</span>({
+  query: <span class="str">'123456789012345678'</span>,
+});
+
+console.<span class="fn">log</span>(result.data);
+
+<span class="com">// → {
+//   userId: '123456789012345678',
+//   username: 'username',
+//   displayName: 'Display Name',
+//   pfp: 'https://cdn.discordapp.com/avatars/...',
+// }</span></code></pre>
+        </div>
+
+        <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-2">Install</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ npm install @abyssalosint/sdk</span>
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ pnpm add @abyssalosint/sdk</span>
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ bun add @abyssalosint/sdk</span>
+        </div>
+        <button class="w-full py-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-sm flex items-center justify-center gap-2">View SDK docs <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+      </div>
+
+      <!-- CLI -->
+      <div class="card reveal p-6">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4zM7 9l3 3-3 3M12 15h5"/></svg>
+          </div>
+          <h3 class="font-semibold">CLI</h3>
+        </div>
+        <p class="text-sm text-gray-400 mb-4">Run searches from the terminal, shell scripts, and CI pipelines with the @abyssalosint/cli package.</p>
+
+        <div class="rounded-xl border border-white/10 bg-black/40 overflow-hidden mb-4">
+          <div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/10">
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-700"></span>
+            <span class="ml-2 text-[11px] text-gray-500 font-mono">terminal</span>
+          </div>
+          <pre class="p-4 text-xs font-mono leading-relaxed overflow-x-auto"><code><span class="text-gray-500">$</span> abyssal search socials/github mharper --json
+
+{
+  <span class="prop">"success"</span>: <span class="kw">true</span>,
+  <span class="prop">"feature"</span>: <span class="str">"github"</span>,
+  <span class="prop">"data"</span>: {
+    <span class="prop">"username"</span>: <span class="str">"mharper"</span>,
+    <span class="prop">"name"</span>: <span class="str">"Morgan Harper"</span>,
+    <span class="prop">"followers"</span>: <span class="num">861</span>,
+    <span class="prop">"public_repos"</span>: <span class="num">37</span>
+  }
+}</code></pre>
+        </div>
+
+        <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-2">Install</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ npm install -g @abyssalosint/cli</span>
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ pnpm add -g @abyssalosint/cli</span>
+          <span class="pill rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300">$ bun add -g @abyssalosint/cli</span>
+        </div>
+        <button class="w-full py-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-sm flex items-center justify-center gap-2">View CLI docs <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="py-24">
+  <div class="max-w-3xl mx-auto px-6 text-center reveal">
+    <h2 class="text-3xl sm:text-4xl font-bold">Pay only for what you use</h2>
+    <p class="mt-4 text-gray-400">No subscriptions. No monthly fees. Just simple, transparent pricing.</p>
+  </div>
+
+  <div class="max-w-2xl mx-auto px-6 mt-12 reveal">
+    <div class="card p-8">
+      <div class="flex items-center justify-between mb-6">
+        <span class="text-gray-300">Credit pricing</span>
+        <span class="text-[10px] tracking-wider pill rounded-full px-3 py-1 text-gray-400 uppercase">Pay as you go</span>
+      </div>
+
+      <div class="flex items-end gap-2 mb-6">
+        <span class="text-5xl font-bold">$1</span>
+        <span class="text-gray-400 mb-1">per 10 credits</span>
+      </div>
+
+      <ul class="space-y-3 mb-8 text-sm">
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Most lookups cost 1 credit</li>
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Credits never expire</li>
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Full API access included</li>
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> No recurring charges</li>
+      </ul>
+
+      <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-3">Cost per tool</p>
+      <div class="scroll-x flex gap-3 overflow-x-auto pb-4 mb-6">
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">IntelX Portal</p>
+          <p class="text-sm font-semibold text-primary-300">10 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">CloudSINT</p>
+          <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">Court Records</p>
+          <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">Leakcheck</p>
+          <p class="text-sm font-semibold text-primary-300">1 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">DoubleCheck Bypass</p>
+          <p class="text-sm font-semibold text-primary-300">1 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+      </div>
+
+      <button class="w-full py-3.5 rounded-xl bg-primary-600 hover:bg-primary-500 font-semibold flex items-center justify-center gap-2 transition-colors">Get started free <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-6 mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 reveal">
+    <div class="card p-5">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><path d="M3 3l18 18M10 10a3 3 0 004 4M9.9 5A9 9 0 0121 12c-.3.6-.6 1.2-1 1.8M6 6a9 9 0 003 15"/></svg>
+      <h3 class="font-semibold text-sm mb-1">No Subscriptions</h3>
+      <p class="text-xs text-gray-400">Buy credits when you need them, use them whenever</p>
+    </div>
+    <div class="card p-5">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><path d="M18.2 6.4a5 5 0 000 11.2M5.8 6.4a5 5 0 000 11.2M9 12h6"/></svg>
+      <h3 class="font-semibold text-sm mb-1">Credits Never Expire</h3>
+      <p class="text-xs text-gray-400">Your credits stay in your account until you use them</p>
+    </div>
+    <div class="card p-5">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      <h3 class="font-semibold text-sm mb-1">Full API Access</h3>
+      <p class="text-xs text-gray-400">Automate your workflows with our REST API</p>
+    </div>
+    <div class="card p-5">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><path d="M4 15v-3a8 8 0 0116 0v3"/><path d="M4 15a2 2 0 002 2h1v-5H6a2 2 0 00-2 2zM20 15a2 2 0 01-2 2h-1v-5h1a2 2 0 012 2z"/></svg>
+      <h3 class="font-semibold text-sm mb-1">24/7 Support</h3>
+      <p class="text-xs text-gray-400">Get help whenever you need it from our team</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="py-24 px-6">
+  <div class="max-w-4xl mx-auto reveal">
+    <div class="relative rounded-[3rem] bg-gradient-to-b from-primary-900/40 to-transparent border border-white/5 py-20 px-8 text-center overflow-hidden">
+      <div class="glow w-[400px] h-[400px] bg-primary-600/20 top-0 left-1/2 -translate-x-1/2"></div>
+      <div class="relative">
+        <h2 class="text-4xl sm:text-5xl font-bold leading-tight">Join thousands<br>of investigators.</h2>
+        <p class="mt-5 text-gray-400 max-w-lg mx-auto">Analysts, researchers, and security teams rely on Abyssal to power their OSINT workflows every day.</p>
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <button class="px-6 py-3 rounded-xl bg-white text-black font-semibold flex items-center gap-2 hover:bg-gray-200 transition-colors">Get started free <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+          <button class="px-6 py-3 rounded-xl border border-white/20 font-semibold hover:bg-white/5 transition-colors">View pricing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer id="contact" class="border-t border-white/10 pt-16 pb-8">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+      <div>
+        <a href="#" class="flex items-center gap-2.5 mb-4">
+          <img src="assets/logo-red.png" alt="Abyssal" class="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]">
+          <span class="text-lg font-semibold">Abyssal</span>
+        </a>
+        <p class="text-sm text-gray-500 leading-relaxed mb-5">Professional OSINT investigation platform for modern digital forensics.</p>
+        <div class="flex items-center gap-4 text-gray-500">
+          <a href="#" class="hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22 4.5L2.5 12l6.3 2.3L11 21l3-4.5 5 2z"/></svg></a>
+          <a href="#" class="hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 3h3.2l-7 8 8.2 10.9h-6.4l-5-6.6-5.8 6.6H2.3l7.5-8.6L2 3h6.5l4.6 6z"/></svg></a>
+          <a href="#" class="hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-5 3-8 6-8 11a8 8 0 0016 0c0-5-3-8-8-11zm0 4c2.5 1.6 4 3.8 4 6.5a4 4 0 01-8 0c0-2.7 1.5-4.9 4-6.5z"/></svg></a>
+          <a href="#" class="hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15 3a5 5 0 005 5v3a8 8 0 01-5-1.7V15a6 6 0 11-6-6c.3 0 .7 0 1 .1v3.2a3 3 0 103 3V3z"/></svg></a>
+          <a href="#" class="hover:text-white transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1-1.5-1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.5-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A10 10 0 0012 2z"/></svg></a>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="font-semibold mb-4 text-sm">Product</h4>
+        <ul class="space-y-3 text-sm text-gray-500">
+          <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+          <li><a href="#pricing" class="hover:text-white transition-colors">Pricing</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Support</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">System Status</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-semibold mb-4 text-sm">Legal</h4>
+        <ul class="space-y-3 text-sm text-gray-500">
+          <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Law Enforcement Guide</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-semibold mb-4 text-sm">Contact</h4>
+        <ul class="space-y-3 text-sm text-gray-500">
+          <li>support@abyssal.app</li>
+          <li>+1 (833) 542-4685</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-white/10 pt-6 text-center text-xs text-gray-600">
+      © 2026 Abyssal. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script src="js/particles.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
