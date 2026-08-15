@@ -503,11 +503,43 @@ function rawJsonBlock(data, filename = 'resultado.json') {
    distinct, alarming category at a glance rather than blending in with the
    plain lookups (whois, ip info, etc.). */
 function oathnetCardOpen() {
-  return `<div class="rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/25 to-black/60 p-6 shadow-[0_0_40px_-22px_rgba(239,68,68,0.45)]">
-    <div class="flex items-center gap-2 mb-5 text-[10px] font-bold uppercase tracking-widest text-red-400">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l9 4.5v6c0 5-3.5 8.5-9 9.5-5.5-1-9-4.5-9-9.5v-6L12 2z"/></svg>
-      OathNet Intelligence
-    </div>`;
+  return `<div class="rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/25 to-black/60 p-6 shadow-[0_0_40px_-22px_rgba(239,68,68,0.45)]">`;
+}
+
+/* Renders every scalar field of an object as its own small embed-style
+   box (label on top, value below) — a Discord-embed-field grid — instead
+   of a hand-picked subset, so whatever the API actually returned shows up.
+   Arrays of objects and nested objects are skipped (callers render those
+   as their own dedicated section below the grid); image-looking keys
+   (avatar/banner/picture/...) render a thumbnail instead of a raw URL. */
+function embedFieldGrid(obj, labels = {}) {
+  const IMAGE_KEY = /avatar|banner|picture|image|photo|icon/i;
+  const boxes = Object.entries(obj || {}).map(([key, rawValue]) => {
+    let value = rawValue;
+    if (value === null || value === undefined || value === '') return '';
+    if (Array.isArray(value)) {
+      if (!value.length || typeof value[0] === 'object') return '';
+      value = value.join(', ');
+    } else if (typeof value === 'object') {
+      return '';
+    }
+    const label = labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const isUrl = /^https?:\/\//.test(String(value));
+    if (IMAGE_KEY.test(key) && isUrl) {
+      return `<div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
+          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">${escapeHtml(label)}</p>
+          <img src="${value}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="">
+        </div>`;
+    }
+    return `<div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
+        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${escapeHtml(label)}</p>
+        ${isUrl
+          ? `<a href="${value}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">Abrir ↗</a>`
+          : `<p class="text-sm font-mono text-gray-200 break-all">${escapeHtml(String(value))}</p>`}
+      </div>`;
+  }).filter(Boolean);
+
+  return boxes.length ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">${boxes.join('')}</div>` : '';
 }
 
 async function webDatabasesRun(query) {
@@ -618,13 +650,7 @@ async function gmailLookupRun(query) {
   const p = d.data || {};
   return `
     ${oathnetCardOpen()}
-      <div class="flex items-center gap-4 mb-5">
-        ${p.profile_picture || p.avatar ? `<img src="${p.profile_picture || p.avatar}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
-        <div>
-          <p class="font-semibold text-lg">${escapeHtml(p.name || p.display_name || query)}</p>
-          <p class="text-sm text-gray-500 font-mono">${escapeHtml(query)}</p>
-        </div>
-      </div>
+      ${embedFieldGrid(p) || `<p class="text-sm text-gray-500">Sin datos públicos para "${escapeHtml(query)}".</p>`}
       ${rawJsonBlock(d, `gmail-${query}.json`)}
     </div>`;
 }
@@ -697,25 +723,13 @@ async function emailSearchRun(query) {
 async function discordRun(query) {
   const d = await apiGet(`/api/oathnet/discord/${encodeURIComponent(query.trim())}`);
   const u = d.data || {};
+  const gridData = { ...u, username_history: (u.username_history || []).map(h => (h && h.name) || h) };
+  delete gridData.breach_records;
+  delete gridData.stealer_records;
+
   return `
     ${oathnetCardOpen()}
-      <div class="flex items-center gap-4 mb-5">
-        ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
-        <div>
-          <p class="font-semibold text-lg">${escapeHtml(u.global_name || u.username)}</p>
-          <p class="text-sm text-gray-500 font-mono">${escapeHtml(u.username)} · ID ${escapeHtml(u.id)}</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-5">
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuenta creada</p><p class="font-semibold">${fmtDate(u.creation_date)}</p></div>
-      </div>
-      ${u.badges?.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Badges</p>
-        <div class="flex flex-wrap gap-2 mb-5">${u.badges.map(b => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(b)}</span>`).join('')}</div>` : ''}
-      ${u.username_history?.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Nombres anteriores</p>
-        <div class="flex flex-wrap gap-2 mb-5">${u.username_history.map(h => `<span class="pill rounded-full px-2.5 py-1 text-[11px] font-mono text-gray-300">${escapeHtml(h.name || h)}</span>`).join('')}</div>` : ''}
-      ${u.banner_url ? `<img src="${u.banner_url}" class="w-full rounded-lg mb-5 border border-white/10" alt="">` : ''}
+      ${embedFieldGrid(gridData, { id: 'ID', global_name: 'Nombre', avatar_url: 'Avatar', banner_url: 'Banner', creation_date: 'Cuenta creada', badges: 'Badges', username_history: 'Nombres anteriores' })}
       ${u.breach_records?.length ? `
         <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Registros cruzados (Web Databases)</p>
         <div class="space-y-2">
@@ -746,16 +760,12 @@ async function xboxRun(query) {
   const d = await apiGet(`/api/oathnet/xbox/${encodeURIComponent(query.trim())}`);
   const x = d.data || {};
   const meta = x.meta || {};
+  const gridData = { ...x, ...meta };
+  delete gridData.meta;
+
   return `
     ${oathnetCardOpen()}
-      <div class="flex items-center gap-4 mb-5">
-        ${x.avatar ? `<img src="${x.avatar}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
-        <div>
-          <p class="font-semibold text-lg">${escapeHtml(meta.gamertag || x.username)}</p>
-          <p class="text-sm text-gray-500 font-mono">Xbox ID ${escapeHtml(x.id)}</p>
-        </div>
-      </div>
-      ${meta.profile_url ? `<a href="${meta.profile_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>` : ''}
+      ${embedFieldGrid(gridData, { id: 'Xbox ID', avatar: 'Avatar', gamertag: 'Gamertag', profile_url: 'Perfil' })}
       ${rawJsonBlock(d, `xbox-${query}.json`)}
     </div>`;
 }
@@ -815,18 +825,20 @@ async function usernamesRun(query) {
   const entries = Object.entries(d.platforms);
   const found = entries.filter(([, v]) => v.exists === true);
 
+  const cards = entries.map(([name, v]) => {
+    const status = v.exists === true ? 'REGISTERED' : v.exists === false ? 'NOT FOUND' : 'NO VERIFICADO';
+    const color = v.exists === true ? '#34d399' : v.exists === false ? '#6b7280' : '#fbbf24';
+    return linkedAccountCard(name, null, status, color, [['URL', v.url]]);
+  });
+
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="text-sm text-gray-500 mb-4">${found.length} de ${entries.length} plataformas verificadas confirman el usuario "${escapeHtml(username)}"</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        ${entries.map(([name, v]) => `
-          <a href="${v.exists ? v.url : '#'}" ${v.exists ? 'target="_blank" rel="noopener"' : ''} class="flex items-center justify-between text-sm border border-white/10 rounded-lg px-3 py-2.5 ${v.exists ? 'hover:bg-white/5' : 'opacity-50 pointer-events-none'}">
-            <span>${escapeHtml(name)}</span>
-            <span class="w-2 h-2 rounded-full ${v.exists === true ? 'bg-emerald-400' : v.exists === false ? 'bg-gray-600' : 'bg-amber-400'}"></span>
-          </a>`).join('')}
+      <div class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-300">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        PLATAFORMAS (${found.length}/${entries.length})
       </div>
-      <p class="text-[11px] text-gray-600 mt-4">🟢 encontrado · ⚪ no encontrado · 🟡 no se pudo verificar (el sitio bloqueó la consulta)</p>
-      ${rawJsonBlock(d)}
+      <div class="space-y-2">${cards.join('')}</div>
+      ${rawJsonBlock(d, `usernames-${username}.json`)}
     </div>`;
 }
 
@@ -835,23 +847,12 @@ async function usernamesRun(query) {
 async function robloxScraperRun(query) {
   const d = await apiGet(`/api/oathnet/roblox/${encodeURIComponent(query.trim().replace(/^@/, ''))}`);
   const p = d.data || {};
+  const gridData = { ...p };
+  delete gridData.provider_statuses;
 
   return `
     ${oathnetCardOpen()}
-      <div class="flex items-center gap-4 mb-5">
-        ${p['Avatar URL'] ? `<img src="${p['Avatar URL']}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
-        <div>
-          <p class="font-semibold text-lg">${escapeHtml(p['Display Name'] || p.username)}</p>
-          <p class="text-sm text-gray-500 font-mono">@${escapeHtml(p['Current Username'] || p.username)} · ID ${escapeHtml(p.user_id)}</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-5">
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuenta creada</p><p class="font-semibold">${fmtDate(p['Join Date'])}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Discord vinculado</p><p class="font-semibold">${p.Discord ? escapeHtml(p.Discord) : '—'}</p></div>
-      </div>
-      ${p['Old Usernames'] && p['Old Usernames'] !== 'None' ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Nombres anteriores</p>
-        <p class="text-sm font-mono text-gray-300 mb-2">${escapeHtml(p['Old Usernames'])}</p>` : ''}
+      ${embedFieldGrid(gridData)}
       ${rawJsonBlock(d, `roblox-scraper-${query}.json`)}
     </div>`;
 }
