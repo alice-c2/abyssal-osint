@@ -232,6 +232,82 @@ async function steamRun(query) {
     </div>`;
 }
 
+/* ---------- TikTok — /api/tiktok (no key, scrapes the profile page) ---------- */
+async function tiktokRun(query) {
+  const username = query.trim().replace(/^@/, '');
+  const d = await apiGet(`/api/tiktok/${encodeURIComponent(username)}`);
+  const u = d.user || {};
+  const s = d.stats || {};
+
+  return `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+      <div class="flex items-center gap-4 mb-5">
+        ${u.avatarLarger ? `<img src="${u.avatarLarger}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
+        <div>
+          <p class="font-semibold text-lg flex items-center gap-1.5">${escapeHtml(u.nickname || u.uniqueId)} ${u.verified ? '✅' : ''}</p>
+          <p class="text-sm text-gray-500">@${escapeHtml(u.uniqueId)}</p>
+        </div>
+      </div>
+      ${u.signature ? `<p class="text-sm text-gray-300 mb-5 whitespace-pre-wrap">${escapeHtml(u.signature)}</p>` : ''}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Seguidores</p><p class="font-semibold">${(s.followerCount || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Siguiendo</p><p class="font-semibold">${(s.followingCount || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Likes</p><p class="font-semibold">${(s.heartCount || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Videos</p><p class="font-semibold">${(s.videoCount || 0).toLocaleString()}</p></div>
+      </div>
+      ${u.privateAccount ? '<p class="text-xs text-amber-400 mb-2">🔒 Cuenta privada.</p>' : ''}
+      <a href="https://www.tiktok.com/@${encodeURIComponent(u.uniqueId || username)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
+    </div>`;
+}
+
+/* ---------- Epic Games / Fortnite — /api/epicgames (server's own free key, fortnite-api.com) ---------- */
+async function epicGamesRun(query) {
+  const d = await apiGet(`/api/epicgames/${encodeURIComponent(query.trim())}`);
+  const acc = d.account || {};
+  const overall = d.stats?.all?.overall || {};
+
+  return `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+      <p class="font-semibold text-lg mb-1">${escapeHtml(acc.name || query)}</p>
+      <p class="text-sm text-gray-500 font-mono mb-5">${escapeHtml(acc.id || '—')}</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Victorias</p><p class="font-semibold">${(overall.wins || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Partidas</p><p class="font-semibold">${(overall.matches || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Kills</p><p class="font-semibold">${(overall.kills || 0).toLocaleString()}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">K/D</p><p class="font-semibold">${overall.kd ?? '—'}</p></div>
+      </div>
+      ${rawJsonBlock(d)}
+    </div>`;
+}
+
+/* ---------- Phone — /api/phone-osint. Numverify (server's own free key)
+   is wired; other requested sources (Truecaller, CloudSINT, SNUS,
+   BreachVIP) stay pending — see backend/main.py phone_osint(). ---------- */
+async function phoneSearchRun(query) {
+  const number = query.trim();
+  const d = await apiGet(`/api/phone-osint/${encodeURIComponent(number)}`);
+  const nv = d.numverify;
+
+  const numverifyBlock = nv
+    ? `
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-5">
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">País</p><p class="font-semibold">${escapeHtml(nv.country_name || '—')}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Ubicación</p><p class="font-semibold">${escapeHtml(nv.location || '—')}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Operador</p><p class="font-semibold">${escapeHtml(nv.carrier || '—')}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Tipo de línea</p><p class="font-semibold">${escapeHtml(nv.line_type || '—')}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Formato internacional</p><p class="font-semibold font-mono">${escapeHtml(nv.international_format || '—')}</p></div>
+      </div>`
+    : `<p class="text-sm text-gray-500 mb-5">${escapeHtml(d.numverify_error || 'Sin resultados en Numverify.')}</p>`;
+
+  return `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+      <p class="font-mono text-sm text-gray-300 mb-4 break-all">${escapeHtml(number)}</p>
+      ${numverifyBlock}
+      ${d.pending_sources?.length ? `<p class="text-[11px] text-gray-600 mt-1 pt-4 border-t border-white/10">Fuentes pendientes: ${d.pending_sources.map(escapeHtml).join(', ')}.</p>` : ''}
+      ${rawJsonBlock(d)}
+    </div>`;
+}
+
 /* ---------- App Store Search — /api/appstore ---------- */
 async function appStoreRun(query) {
   const d = await apiGet('/api/appstore', { term: query.trim() });
@@ -444,6 +520,40 @@ async function hudsonRockRun(query) {
             ${recordRow([['user', it.username], ['pass', it.password], ['pwned', fmtDate(it.pwned_at)], ['indexado', fmtDate(it.indexed_at)]])}
           </div>`).join('')}
       </div>
+      ${rawJsonBlock(d)}
+    </div>`;
+}
+
+/* ---------- Mail OSINT — LeakCheck (public, no key) via /api/mail-osint.
+   Other requested sources (Hudson Rock, IntelX, OSINT Industries, Indicia)
+   aren't wired in yet — see backend/main.py mail_osint() for why. The
+   backend already reports them as pending_sources so the UI can say so
+   instead of silently omitting them. ---------- */
+async function mailOsintRun(query) {
+  const email = query.trim();
+  const d = await apiGet(`/api/mail-osint/${encodeURIComponent(email)}`);
+  const lc = d.leakcheck;
+
+  const leakcheckBlock = lc?.success
+    ? `
+      <p class="text-sm text-gray-300 mb-3">Encontrado en <span class="font-semibold text-red-400">${escapeHtml(String(lc.found ?? 0))}</span> filtracion${lc.found === 1 ? '' : 'es'} (LeakCheck, plan público — sin datos crudos)</p>
+      ${lc.sources?.length ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Fuentes</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          ${lc.sources.slice(0, 30).map(s => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(s.name || '—')}${s.date ? ` · ${escapeHtml(s.date)}` : ''}</span>`).join('')}
+        </div>` : ''}
+      ${lc.fields?.length ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Tipos de datos expuestos</p>
+        <div class="flex flex-wrap gap-2">
+          ${lc.fields.map(f => `<span class="pill rounded-full px-2.5 py-1 text-[11px] font-mono text-gray-400">${escapeHtml(f)}</span>`).join('')}
+        </div>` : ''}`
+    : `<p class="text-sm text-gray-500">${escapeHtml(d.leakcheck_error || 'Sin resultados en LeakCheck.')}</p>`;
+
+  return `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+      <p class="font-mono text-sm text-gray-300 mb-4 break-all">${escapeHtml(email)}</p>
+      ${leakcheckBlock}
+      ${d.pending_sources?.length ? `<p class="text-[11px] text-gray-600 mt-5 pt-4 border-t border-white/10">Fuentes pendientes de integrar (falta API key/docs confirmados): ${d.pending_sources.map(escapeHtml).join(', ')}.</p>` : ''}
       ${rawJsonBlock(d)}
     </div>`;
 }
@@ -736,6 +846,7 @@ window.LIVE_HANDLERS = {
   'web-databases': { run: webDatabasesRun },
   'hudson-rock': { run: hudsonRockRun },
   'gmail-lookup': { run: gmailLookupRun },
+  'mail-osint': { run: mailOsintRun },
   'email-search': { run: emailSearchRun },
   'discord': { run: discordRun },
   'xbox': { run: xboxRun },
@@ -744,4 +855,7 @@ window.LIVE_HANDLERS = {
   'usernames': { run: usernamesRun },
   'roblox-profile-scraper': { run: robloxScraperRun },
   'playstation': { run: playstationRun },
+  'tiktok': { run: tiktokRun },
+  'epic-games': { run: epicGamesRun },
+  'phone-search': { run: phoneSearchRun },
 };

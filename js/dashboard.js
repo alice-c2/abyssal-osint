@@ -79,6 +79,7 @@ const SECTIONS = [
       { id: 'reverse-face-search', label: 'Reverse Face Search', iconKey: 'scan', desc: 'Find matches for a face across social profiles and the open web', placeholder: 'Upload a photo to search...', credits: 5 },
       { id: 'image-geolocation', label: 'Image Geolocation', iconKey: 'pin', desc: 'Estimate where a photo was taken using AI', placeholder: 'Upload an image to geolocate...', credits: 3 },
       { id: 'gmail-lookup', label: 'Gmail Lookup', iconKey: 'mail', desc: 'Check Gmail account details and linked activity', placeholder: 'Enter a Gmail address...', credits: 1 },
+      { id: 'mail-osint', label: 'Mail OSINT', iconKey: 'mail', desc: 'Breach search via LeakCheck (more sources pending API access)', placeholder: 'Enter an email address...', credits: 1 },
       { id: 'hudson-rock', label: 'Hudson Rock', iconKey: 'bug', desc: 'Search infostealer malware logs for exposed credentials', placeholder: 'Enter email, username, or domain...', credits: 2 },
       { id: 'seon', label: 'SEON', iconKey: 'alert', desc: 'Fraud and risk intelligence lookup', placeholder: 'Enter email, phone, or IP...', credits: 2 },
     ],
@@ -86,7 +87,7 @@ const SECTIONS = [
   {
     label: 'US Search',
     items: [
-      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, owner, and location info for a phone number', placeholder: 'Enter phone number...', credits: 1 },
+      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, owner, and location info for a phone number (sources pending)', placeholder: 'Enter phone number...', credits: 1 },
       { id: 'address-search', label: 'Address Search', iconKey: 'house', desc: 'Find residents and property history for an address', placeholder: 'Enter a street address...', credits: 1 },
       { id: 'email-search', label: 'Email Search', iconKey: 'at', desc: 'Find identity info linked to an email address', placeholder: 'Enter an email address...', credits: 1 },
       { id: 'person-search', label: 'Person Search', iconKey: 'user', desc: 'Build out a full US identity profile', placeholder: 'Enter full name...', credits: 2 },

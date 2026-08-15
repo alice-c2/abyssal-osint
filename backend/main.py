@@ -31,6 +31,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import time
 from pathlib import Path
 from urllib.parse import quote
@@ -50,6 +51,8 @@ load_dotenv(ROOT_DIR / ".env")
 SHODAN_API_KEY = os.environ.get("SHODAN_API_KEY", "")
 VIRUSTOTAL_API_KEY = os.environ.get("VIRUSTOTAL_API_KEY", "")
 STEAM_API_KEY = os.environ.get("STEAM_API_KEY", "")
+FORTNITE_API_KEY = os.environ.get("FORTNITE_API_KEY", "")
+NUMVERIFY_API_KEY = os.environ.get("NUMVERIFY_API_KEY", "")
 OATHNET_API_KEY = os.environ.get("OATHNET_API_KEY", "")
 OATHNET_BASE = "https://oathnet.org/api/service"
 PSN_NPSSO = os.environ.get("PSN_NPSSO", "")
@@ -278,6 +281,70 @@ async def steam_user(identifier: str):
     if not players:
         raise HTTPException(404, "No existe ese usuario de Steam.")
     return players[0]
+
+
+# ---------------------------------------------------------------- Epic Games / Fortnite (fortnite-api.com — free,
+# server's own key: fortnite-api.com's general endpoints (news, cosmetics)
+# are keyless, but /v2/stats needs a free key from their dashboard to
+# curb abuse — same "free but needs signup" shape as Steam.
+@app.get("/api/epicgames/{username}")
+async def epicgames_user(username: str):
+    if not FORTNITE_API_KEY:
+        raise HTTPException(503, "El servidor todavía no tiene configurada una API key de Fortnite-API (.env) — es gratis en fortnite-api.com/dashboard.")
+
+    data = await get_json(
+        "https://fortnite-api.com/v2/stats/br/v2",
+        params={"name": username},
+        headers={"Authorization": FORTNITE_API_KEY},
+    )
+    if data.get("status") != 200 or not data.get("data"):
+        raise HTTPException(404, "No existe esa cuenta de Epic Games/Fortnite, o no tiene estadísticas públicas.")
+    return data["data"]
+
+
+# ---------------------------------------------------------------- TikTok (no key — parses the SIGI/UNIVERSAL_DATA
+# JSON TikTok embeds in the profile page's HTML for its own React app to
+# hydrate from. No official public API exists for arbitrary profile lookup;
+# this is the same "public data, browser-only" situation as crt.sh/Roblox,
+# except here the workaround is parsing embedded JSON instead of calling a
+# separate endpoint. Needs real browser-like headers or TikTok's edge WAF
+# 403s the request.
+TIKTOK_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+    "Accept": "text/html",
+}
+
+
+@app.get("/api/tiktok/{username}")
+async def tiktok_user(username: str):
+    username = username.lstrip("@")
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
+        try:
+            r = await client.get(f"https://www.tiktok.com/@{username}", params={"lang": "en"}, headers=TIKTOK_HEADERS)
+        except httpx.RequestError as exc:
+            raise HTTPException(502, f"No se pudo conectar con TikTok: {exc}") from exc
+
+    match = re.search(
+        r'<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">(.*?)</script>',
+        r.text,
+    )
+    if not match:
+        raise HTTPException(502, "TikTok devolvió una página inesperada (posible bloqueo anti-bot).")
+
+    try:
+        payload = json.loads(match.group(1))
+    except ValueError as exc:
+        raise HTTPException(502, "No se pudo leer los datos del perfil de TikTok.") from exc
+
+    user_detail = payload.get("__DEFAULT_SCOPE__", {}).get("webapp.user-detail", {})
+    if user_detail.get("statusCode"):
+        raise HTTPException(404, f"No existe ese usuario de TikTok ({user_detail.get('statusMsg', 'no encontrado')}).")
+
+    user_info = user_detail.get("userInfo", {})
+    if not user_info:
+        raise HTTPException(404, "No existe ese usuario de TikTok.")
+
+    return {"user": user_info.get("user", {}), "stats": user_info.get("stats", {})}
 
 
 # ---------------------------------------------------------------- PlayStation
@@ -574,6 +641,79 @@ async def oathnet_discord(discord_id: str):
 @app.get("/api/oathnet/xbox/{gamertag}")
 async def oathnet_xbox(gamertag: str):
     return await oathnet_get("/xbox", {"xbl_id": gamertag})
+
+
+# ---------------------------------------------------------------- Mail OSINT (LeakCheck + future sources)
+# LeakCheck's public endpoint (docs.leakcheck.io) needs no key and is free —
+# used here directly. The account API key we have on file (2026-08-15)
+# doesn't validate on either the v1 (leakcheck.net) or v2 (leakcheck.io)
+# authenticated endpoints ("API Key is wrong" / "Invalid X-API-Key"), so the
+# richer authenticated tier stays off until that's sorted out.
+#
+# Hudson Rock, IntelX, OSINT Industries, and Indicia were all requested for
+# this module too, but none has a confirmed working endpoint yet: the Hudson
+# Rock and IntelX URLs given are the human-facing site/homepage, not an API
+# path, and OSINT Industries / Indicia returned 403 on every endpoint+header
+# combination tried (likely wrong path — these needs the real API docs, not
+# a guess). Add them here the same way once we have real endpoint docs.
+@app.get("/api/mail-osint/{email}")
+async def mail_osint(email: str):
+    email = email.strip()
+    if " " in email or "@" not in email:
+        raise HTTPException(422, f'"{email}" no es un email válido (revisá que no tenga espacios de más).')
+
+    leakcheck_error = None
+    try:
+        leakcheck = await get_json("https://leakcheck.io/api/public", params={"check": email})
+    except HTTPException as exc:
+        leakcheck, leakcheck_error = None, exc.detail
+
+    return {
+        "email": email,
+        "leakcheck": leakcheck,
+        "leakcheck_error": leakcheck_error,
+        "pending_sources": ["Hudson Rock", "IntelX", "OSINT Industries", "Indicia"],
+    }
+
+
+# ---------------------------------------------------------------- Phone OSINT (module scaffold, 2026-08-15).
+# Numverify (apilayer) is wired — server's own free key, validates the
+# number and returns carrier/line-type/location. NOTE: their free tier is
+# http:// only (https:// needs a paid plan), so this is one of the few
+# outbound calls in this file that isn't https — that's intentional, not
+# a bug. Everything else here is still pending_sources: add the same way
+# once we have a key + confirmed endpoint — see mail_osint()/oathnet_get()
+# above for the pattern.
+@app.get("/api/phone-osint/{number}")
+async def phone_osint(number: str):
+    number = number.strip()
+    if not number:
+        raise HTTPException(422, "Ingresá un número de teléfono.")
+
+    numverify, numverify_error = None, None
+    if NUMVERIFY_API_KEY:
+        try:
+            data = await get_json(
+                "http://apilayer.net/api/validate",
+                params={"access_key": NUMVERIFY_API_KEY, "number": number},
+            )
+            if data.get("success") is False:
+                numverify_error = (data.get("error") or {}).get("info") or "Numverify no pudo validar el número."
+            elif not data.get("valid"):
+                numverify_error = "Numverify dice que este número no es válido."
+            else:
+                numverify = data
+        except HTTPException as exc:
+            numverify_error = exc.detail
+    else:
+        numverify_error = "El servidor todavía no tiene configurada una API key de Numverify (.env) — es gratis en numverify.com/product."
+
+    return {
+        "number": number,
+        "numverify": numverify,
+        "numverify_error": numverify_error,
+        "pending_sources": ["Truecaller", "CloudSINT", "SNUS", "BreachVIP"],
+    }
 
 
 # ---------------------------------------------------------------- Alice AI chat
