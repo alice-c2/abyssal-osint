@@ -470,28 +470,58 @@ function recordRow(fields) {
   return `<div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500 font-mono">${chips}</div>`;
 }
 
-/* Full, unfiltered JSON exactly as OathNet sent it — collapsed by default
-   so the curated view above stays readable, but nothing is hidden. */
-function rawJsonBlock(data) {
+/* Downloads the exact JSON blob passed in as a file — pure <a download>
+   with a data: URI, no click handler needed since this HTML gets injected
+   via innerHTML (inline onclick wouldn't have a `data` to close over). */
+function downloadJsonButton(filename, data) {
+  const href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+  return `<a href="${href}" download="${escapeHtml(filename)}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] font-medium text-gray-300 transition-colors shrink-0">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Descargar JSON
+    </a>`;
+}
+
+/* Full, unfiltered JSON exactly as the API sent it — collapsed by default
+   so the curated view above stays readable, but nothing is hidden, and it
+   can always be saved as a file even without expanding it. */
+function rawJsonBlock(data, filename = 'resultado.json') {
   return `
-    <details class="mt-5">
-      <summary class="cursor-pointer text-[11px] text-gray-500 uppercase tracking-wider hover:text-gray-300">Ver respuesta completa de OathNet (JSON crudo)</summary>
-      <pre class="mt-2 text-[11px] font-mono text-gray-400 whitespace-pre-wrap break-all bg-white/[0.02] border border-white/10 rounded-lg p-4 max-h-[32rem] overflow-auto">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
-    </details>`;
+    <div class="mt-5 pt-4 border-t border-white/10">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <span class="text-[11px] text-gray-500 uppercase tracking-wider">Resultado completo</span>
+        ${downloadJsonButton(filename, data)}
+      </div>
+      <details>
+        <summary class="cursor-pointer text-[11px] text-gray-500 hover:text-gray-300">Ver JSON crudo</summary>
+        <pre class="mt-2 text-[11px] font-mono text-gray-400 whitespace-pre-wrap break-all bg-black/30 border border-white/10 rounded-lg p-4 max-h-[32rem] overflow-auto">${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      </details>
+    </div>`;
+}
+
+/* Red-tinted "breach intel" card shell — every /api/oathnet/* result below
+   uses this instead of the neutral card so OathNet output reads as its own
+   distinct, alarming category at a glance rather than blending in with the
+   plain lookups (whois, ip info, etc.). */
+function oathnetCardOpen() {
+  return `<div class="rounded-2xl border border-red-500/25 bg-gradient-to-b from-red-950/25 to-black/60 p-6 shadow-[0_0_40px_-22px_rgba(239,68,68,0.45)]">
+    <div class="flex items-center gap-2 mb-5 text-[10px] font-bold uppercase tracking-widest text-red-400">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l9 4.5v6c0 5-3.5 8.5-9 9.5-5.5-1-9-4.5-9-9.5v-6L12 2z"/></svg>
+      OathNet Intelligence
+    </div>`;
 }
 
 async function webDatabasesRun(query) {
   const d = await apiGet(`/api/oathnet/breach/${encodeURIComponent(query.trim())}`);
   const items = d.data?.items || [];
   if (!items.length) {
-    return `<div class="rounded-2xl border border-white/10 bg-black/40 p-6 text-center text-sm text-gray-500">Sin resultados en bases de filtraciones para "${escapeHtml(query)}".${rawJsonBlock(d)}</div>`;
+    return `${oathnetCardOpen()}<p class="text-center text-sm text-gray-500 py-4">Sin resultados en bases de filtraciones para "${escapeHtml(query)}".</p>${rawJsonBlock(d, `oathnet-breach-${query}.json`)}</div>`;
   }
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="text-sm text-gray-500 mb-4">${items.length} registro${items.length === 1 ? '' : 's'} encontrado${items.length === 1 ? '' : 's'} (OathNet)</p>
+    ${oathnetCardOpen()}
+      <p class="text-sm text-red-300/80 mb-4">${items.length} registro${items.length === 1 ? '' : 's'} encontrado${items.length === 1 ? '' : 's'} en bases de filtraciones</p>
       <div class="space-y-2">
         ${items.slice(0, 30).map(it => `
-          <div class="border border-white/10 rounded-lg px-3 py-2.5">
+          <div class="border border-red-500/15 bg-red-500/[0.03] rounded-lg px-3 py-2.5">
             <div class="flex items-center justify-between gap-3 mb-1.5">
               <span class="font-mono text-sm text-gray-200 truncate">${escapeHtml(it.email || it.username || it.id || '—')}</span>
               <span class="text-[11px] text-gray-500 shrink-0">${escapeHtml(it.dbname || '—')}</span>
@@ -499,7 +529,7 @@ async function webDatabasesRun(query) {
             ${recordRow([['user', it.username], ['pass', it.password], ['hash', it.password_hash?.slice(0, 24)], ['indexado', fmtDate(it.indexed_at)]])}
           </div>`).join('')}
       </div>
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `oathnet-breach-${query}.json`)}
     </div>`;
 }
 
@@ -507,20 +537,44 @@ async function webDatabasesRun(query) {
 async function hudsonRockRun(query) {
   const d = await apiGet(`/api/oathnet/stealer/${encodeURIComponent(query.trim())}`);
   const items = d.data?.items || [];
-  if (!items.length) {
-    return `<div class="rounded-2xl border border-white/10 bg-black/40 p-6 text-center text-sm text-gray-500">No se encontraron credenciales robadas por malware para "${escapeHtml(query)}".${rawJsonBlock(d)}</div>`;
+  const hr = d.hudsonrock;
+  const stealers = hr?.stealers || [];
+
+  const hudsonRockBlock = hr
+    ? (stealers.length
+      ? `
+        <p class="text-sm text-red-400 mb-4">⚠️ ${escapeHtml(hr.message || 'Infectado por un infostealer.')}</p>
+        <div class="space-y-2 mb-5">
+          ${stealers.slice(0, 10).map(s => `
+            <div class="border border-red-500/20 rounded-lg px-3 py-2.5 bg-red-500/5">
+              <div class="flex items-center justify-between gap-3 mb-1.5">
+                <span class="font-mono text-sm text-gray-200">${escapeHtml(s.computer_name || 'Equipo desconocido')} · ${escapeHtml(s.operating_system || '—')}</span>
+                <span class="text-[11px] text-gray-500 shrink-0">${fmtDate(s.date_compromised)}</span>
+              </div>
+              ${recordRow([['ip', s.ip], ['servicios', s.total_user_services], ['corporativos', s.total_corporate_services]])}
+              ${s.top_logins?.length ? `<p class="text-[11px] text-gray-500 mt-1.5 font-mono truncate">logins: ${s.top_logins.map(escapeHtml).join(', ')}</p>` : ''}
+            </div>`).join('')}
+        </div>`
+      : `<p class="text-sm text-emerald-400 mb-5">✅ Sin infecciones de infostealer encontradas (Hudson Rock, vía Indicia).</p>`)
+    : `<p class="text-sm text-gray-500 mb-5">Hudson Rock (Indicia): ${escapeHtml(d.hudsonrock_error || 'sin resultados.')}</p>`;
+
+  if (!items.length && !stealers.length) {
+    return `${oathnetCardOpen()}<p class="text-center text-sm text-gray-500 py-4">No se encontraron credenciales robadas por malware para "${escapeHtml(query)}".${hr ? '' : `<br><span class="text-xs">${escapeHtml(d.hudsonrock_error || '')}</span>`}</p>${rawJsonBlock(d, `hudsonrock-${query}.json`)}</div>`;
   }
+
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="text-sm text-gray-500 mb-4">${items.length} registro${items.length === 1 ? '' : 's'} de stealer logs (OathNet)</p>
-      <div class="space-y-2">
-        ${items.slice(0, 30).map(it => `
-          <div class="border border-white/10 rounded-lg px-3 py-2.5">
-            <p class="font-mono text-sm text-gray-200 truncate mb-1.5">${escapeHtml(it.url || (it.domain || [])[0] || '—')}</p>
-            ${recordRow([['user', it.username], ['pass', it.password], ['pwned', fmtDate(it.pwned_at)], ['indexado', fmtDate(it.indexed_at)]])}
-          </div>`).join('')}
-      </div>
-      ${rawJsonBlock(d)}
+    ${oathnetCardOpen()}
+      ${hudsonRockBlock}
+      ${items.length ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">${items.length} registro${items.length === 1 ? '' : 's'} adicional${items.length === 1 ? '' : 'es'} (OathNet)</p>
+        <div class="space-y-2">
+          ${items.slice(0, 30).map(it => `
+            <div class="border border-red-500/15 bg-red-500/[0.03] rounded-lg px-3 py-2.5">
+              <p class="font-mono text-sm text-gray-200 truncate mb-1.5">${escapeHtml(it.url || (it.domain || [])[0] || '—')}</p>
+              ${recordRow([['user', it.username], ['pass', it.password], ['pwned', fmtDate(it.pwned_at)], ['indexado', fmtDate(it.indexed_at)]])}
+            </div>`).join('')}
+        </div>` : ''}
+      ${rawJsonBlock(d, `hudsonrock-${query}.json`)}
     </div>`;
 }
 
@@ -563,7 +617,7 @@ async function gmailLookupRun(query) {
   const d = await apiGet(`/api/oathnet/gmail/${encodeURIComponent(query.trim())}`);
   const p = d.data || {};
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+    ${oathnetCardOpen()}
       <div class="flex items-center gap-4 mb-5">
         ${p.profile_picture || p.avatar ? `<img src="${p.profile_picture || p.avatar}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
@@ -571,7 +625,7 @@ async function gmailLookupRun(query) {
           <p class="text-sm text-gray-500 font-mono">${escapeHtml(query)}</p>
         </div>
       </div>
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `gmail-${query}.json`)}
     </div>`;
 }
 
@@ -627,7 +681,7 @@ async function emailSearchRun(query) {
   }
 
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+    ${oathnetCardOpen()}
       <div class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-300">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         LINKED ACCOUNTS (${cards.length})
@@ -635,7 +689,7 @@ async function emailSearchRun(query) {
       ${d.data?.quota_exhausted ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ Holehe sin cuota por ahora — mostrando solo lo que Google (GHunt) y Gravatar pudieron encontrar.</p>` : ''}
       ${d.data?.holehe_error ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ Holehe: ${escapeHtml(d.data.holehe_error)}</p>` : ''}
       ${cards.length ? `<div class="space-y-2">${cards.join('')}</div>` : `<p class="text-sm text-gray-500 text-center py-8">No se encontraron cuentas vinculadas a "${escapeHtml(email)}".</p>`}
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `email-search-${email}.json`)}
     </div>`;
 }
 
@@ -644,7 +698,7 @@ async function discordRun(query) {
   const d = await apiGet(`/api/oathnet/discord/${encodeURIComponent(query.trim())}`);
   const u = d.data || {};
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+    ${oathnetCardOpen()}
       <div class="flex items-center gap-4 mb-5">
         ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
@@ -678,12 +732,12 @@ async function discordRun(query) {
         <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Registros cruzados (Hudson Rock / stealer logs)</p>
         <div class="space-y-2">
           ${u.stealer_records.slice(0, 10).map(r => `
-            <div class="border border-white/10 rounded-lg px-3 py-2.5">
+            <div class="border border-red-500/15 bg-red-500/[0.03] rounded-lg px-3 py-2.5">
               <p class="font-mono text-sm text-gray-200 truncate mb-1.5">${escapeHtml(r.url || (r.domain || [])[0] || '—')}</p>
               ${recordRow([['user', r.username], ['pass', r.password], ['pwned', fmtDate(r.pwned_at)]])}
             </div>`).join('')}
         </div>` : ''}
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `discord-${query}.json`)}
     </div>`;
 }
 
@@ -693,7 +747,7 @@ async function xboxRun(query) {
   const x = d.data || {};
   const meta = x.meta || {};
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+    ${oathnetCardOpen()}
       <div class="flex items-center gap-4 mb-5">
         ${x.avatar ? `<img src="${x.avatar}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
@@ -702,7 +756,7 @@ async function xboxRun(query) {
         </div>
       </div>
       ${meta.profile_url ? `<a href="${meta.profile_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>` : ''}
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `xbox-${query}.json`)}
     </div>`;
 }
 
@@ -783,7 +837,7 @@ async function robloxScraperRun(query) {
   const p = d.data || {};
 
   return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+    ${oathnetCardOpen()}
       <div class="flex items-center gap-4 mb-5">
         ${p['Avatar URL'] ? `<img src="${p['Avatar URL']}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
@@ -798,7 +852,7 @@ async function robloxScraperRun(query) {
       ${p['Old Usernames'] && p['Old Usernames'] !== 'None' ? `
         <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Nombres anteriores</p>
         <p class="text-sm font-mono text-gray-300 mb-2">${escapeHtml(p['Old Usernames'])}</p>` : ''}
-      ${rawJsonBlock(d)}
+      ${rawJsonBlock(d, `roblox-scraper-${query}.json`)}
     </div>`;
 }
 

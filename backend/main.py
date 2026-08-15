@@ -53,6 +53,8 @@ VIRUSTOTAL_API_KEY = os.environ.get("VIRUSTOTAL_API_KEY", "")
 STEAM_API_KEY = os.environ.get("STEAM_API_KEY", "")
 FORTNITE_API_KEY = os.environ.get("FORTNITE_API_KEY", "")
 NUMVERIFY_API_KEY = os.environ.get("NUMVERIFY_API_KEY", "")
+INDICIA_HUDSONROCK_KEY = os.environ.get("INDICIA_HUDSONROCK_KEY", "")
+INDICIA_BASE = "https://api.indicia.app"
 OATHNET_API_KEY = os.environ.get("OATHNET_API_KEY", "")
 OATHNET_BASE = "https://oathnet.org/api/service"
 PSN_NPSSO = os.environ.get("PSN_NPSSO", "")
@@ -545,9 +547,44 @@ async def oathnet_breach(query: str):
     return await oathnet_get("/v2/breach/search", {"q": query})
 
 
+# Real Hudson Rock data via Indicia (api.indicia.app) — a scoped key that
+# only has access to Indicia's Hudson Rock module. Confirmed working
+# 2026-08-15 against Indicia's actual SDK-documented endpoint. Merged into
+# the OathNet stealer search below since the two draw from different
+# infostealer-log indexes and aren't redundant.
+async def indicia_hudsonrock(query: str):
+    if not INDICIA_HUDSONROCK_KEY:
+        return None, "El servidor todavía no tiene configurada una API key de Indicia/Hudson Rock (.env)."
+
+    query_type = "email" if "@" in query else "username"
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
+        try:
+            r = await client.post(
+                f"{INDICIA_BASE}/v1/search/intelligence/hudsonrock",
+                json={"type": query_type, "query": query},
+                headers={"x-api-key": INDICIA_HUDSONROCK_KEY, "Content-Type": "application/json"},
+            )
+        except httpx.RequestError as exc:
+            return None, f"No se pudo conectar con Indicia: {exc}"
+
+    try:
+        data = r.json()
+    except ValueError:
+        return None, "Indicia (Hudson Rock) devolvió una respuesta inválida."
+
+    if r.status_code >= 400 or data.get("success") is False:
+        return None, data.get("error") or f"Indicia (Hudson Rock) respondió con estado {r.status_code}."
+
+    return data.get("data"), None
+
+
 @app.get("/api/oathnet/stealer/{query}")
 async def oathnet_stealer(query: str):
-    return await oathnet_get("/v2/stealer/search", {"q": query})
+    data = await oathnet_get("/v2/stealer/search", {"q": query})
+    hudsonrock_data, hudsonrock_error = await indicia_hudsonrock(query)
+    data["hudsonrock"] = hudsonrock_data
+    data["hudsonrock_error"] = hudsonrock_error
+    return data
 
 
 # Richer than /api/roblox (adds old-username history and linked Discord,
