@@ -46,6 +46,27 @@ async function apiGet(path, params) {
   return res.json();
 }
 
+/* Same as apiGet but posts a File as multipart/form-data — used by tools
+   that take an image upload instead of a text query. */
+async function apiPostFile(path, fieldName, file) {
+  const fd = new FormData();
+  fd.append(fieldName, file);
+
+  let res;
+  try {
+    res = await fetch(path, { method: 'POST', body: fd });
+  } catch (e) {
+    throw new Error('No se pudo conectar con el backend. ¿Está corriendo `uvicorn backend.main:app`?');
+  }
+
+  if (!res.ok) {
+    let detail = `El backend respondió con estado ${res.status}.`;
+    try { detail = (await res.json()).detail || detail; } catch (e) { /* not JSON, keep default */ }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 /* ---------- IP Info — /api/ip-info ---------- */
 async function ipInfoRun(query) {
   const d = await apiGet(`/api/ip-info/${encodeURIComponent(query.trim())}`);
@@ -67,6 +88,13 @@ async function ipInfoRun(query) {
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Zona horaria</p><p>${d.timezone?.id || '—'}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Coordenadas</p><p>${d.latitude?.toFixed(3)}, ${d.longitude?.toFixed(3)}</p></div>
       </div>
+      ${d.ipapi_co ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Fuente cruzada (ipapi.co)</p>
+        ${embedFieldGrid({
+          city: d.ipapi_co.city, region: d.ipapi_co.region, country: d.ipapi_co.country_name,
+          org: d.ipapi_co.org, asn: d.ipapi_co.asn, timezone: d.ipapi_co.timezone,
+        })}` : `<p class="text-[11px] text-gray-600 mt-4">ipapi.co: sin datos (rate limit o IP no encontrada ahí).</p>`}
+      ${rawJsonBlock(d, `ip-info-${query.trim()}.json`)}
     </div>`;
 }
 
@@ -142,7 +170,26 @@ async function waybackRun(query) {
 /* ---------- GitHub — /api/github ---------- */
 async function githubRun(query) {
   const username = query.trim().replace(/^@/, '');
-  const d = await apiGet(`/api/github/${encodeURIComponent(username)}`);
+  const [d, emailResult] = await Promise.all([
+    apiGet(`/api/github/${encodeURIComponent(username)}`),
+    apiGet(`/api/github-email/${encodeURIComponent(username)}`).then(r => ({ ok: true, ...r })).catch(e => ({ ok: false, error: e.message })),
+  ]);
+
+  // Email Finder — same "git log trick" as github-email-finder.netlify.app:
+  // GitHub's commit search API returns the raw git commit author email,
+  // which is real even when the profile's own email field is private.
+  const emailFinderCard = `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6 mt-4">
+      <div class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-300">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/></svg>
+        EMAIL FINDER
+      </div>
+      ${emailResult.ok
+        ? `
+          <p class="text-lg font-mono text-primary-300 mb-3 break-all">${escapeHtml(emailResult.email || '—')}</p>
+          ${embedFieldGrid({ name: emailResult.name, repository: emailResult.repository, date: emailResult.date, commit_url: emailResult.commit_url })}`
+        : `<p class="text-sm text-gray-500">${escapeHtml(emailResult.error || 'No se encontró email en el historial de commits.')}</p>`}
+    </div>`;
 
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
@@ -169,7 +216,8 @@ async function githubRun(query) {
       </div>
       ${!d.email ? '<p class="text-[11px] text-gray-600 mb-4">Este usuario no puso su email como público en el perfil.</p>' : ''}
       <a href="${d.html_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
-    </div>`;
+    </div>
+    ${emailFinderCard}`;
 }
 
 /* ---------- Roblox — /api/roblox (proxied — Roblox never sends CORS headers) ---------- */
@@ -198,40 +246,6 @@ async function robloxRun(query) {
     </div>`;
 }
 
-/* ---------- Steam — /api/steam (server's own free key) ---------- */
-const STEAM_STATES = ['Offline', 'Online', 'Ocupado', 'Ausente', 'Durmiendo', 'Buscando intercambio', 'Buscando partida'];
-async function steamRun(query) {
-  const id = query.trim().replace(/^https?:\/\/steamcommunity\.com\/(id|profiles)\//, '').replace(/\/$/, '');
-  const d = await apiGet(`/api/steam/${encodeURIComponent(id)}`);
-
-  const isPublic = d.communityvisibilitystate === 3;
-  const created = d.timecreated ? new Date(d.timecreated * 1000).toLocaleDateString() : '—';
-  const lastSeen = d.lastlogoff ? new Date(d.lastlogoff * 1000).toLocaleString() : '—';
-
-  return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <div class="flex items-center gap-4 mb-5">
-        <img src="${d.avatarfull}" class="w-16 h-16 rounded-xl border border-white/10" alt="">
-        <div>
-          <p class="font-semibold text-lg">${escapeHtml(d.personaname)}</p>
-          <p class="text-sm text-gray-500">SteamID64: ${d.steamid}</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Estado</p><p class="font-semibold">${STEAM_STATES[d.personastate] || '—'}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Perfil</p><p class="font-semibold">${isPublic ? 'Público' : 'Privado'}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuenta creada</p><p class="font-semibold">${created}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Última conexión</p><p class="font-semibold">${lastSeen}</p></div>
-      </div>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-5">
-        ${d.realname ? `<span>🧑 ${escapeHtml(d.realname)}</span>` : ''}
-        ${d.loccountrycode ? `<span>📍 ${d.loccountrycode}</span>` : ''}
-        ${d.gameextrainfo ? `<span>🎮 Jugando: ${escapeHtml(d.gameextrainfo)}</span>` : ''}
-      </div>
-      <a href="${d.profileurl}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
-    </div>`;
-}
-
 /* ---------- TikTok — /api/tiktok (no key, scrapes the profile page) ---------- */
 async function tiktokRun(query) {
   const username = query.trim().replace(/^@/, '');
@@ -256,6 +270,20 @@ async function tiktokRun(query) {
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Videos</p><p class="font-semibold">${(s.videoCount || 0).toLocaleString()}</p></div>
       </div>
       ${u.privateAccount ? '<p class="text-xs text-amber-400 mb-2">🔒 Cuenta privada.</p>' : ''}
+      ${d.region ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Región</p>
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Activa</p>
+            <p class="text-sm font-mono text-gray-200">${d.region.active?.flag || ''} ${escapeHtml(d.region.active?.name || '—')}</p>
+          </div>
+          <div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Registrada</p>
+            <p class="text-sm font-mono text-gray-200">${d.region.locked?.flag || ''} ${escapeHtml(d.region.locked?.name || '—')}</p>
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-600 mb-4">"Registrada" es más difícil de falsear que "Activa" — suele indicar el país donde se creó la cuenta.</p>`
+    : `<p class="text-[11px] text-gray-600 mt-5 mb-4">Región no disponible en este momento — probá buscar de nuevo en unos segundos.</p>`}
       <a href="https://www.tiktok.com/@${encodeURIComponent(u.uniqueId || username)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
     </div>`;
 }
@@ -297,14 +325,41 @@ async function phoneSearchRun(query) {
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Tipo de línea</p><p class="font-semibold">${escapeHtml(nv.line_type || '—')}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Formato internacional</p><p class="font-semibold font-mono">${escapeHtml(nv.international_format || '—')}</p></div>
       </div>`
-    : `<p class="text-sm text-gray-500 mb-5">${escapeHtml(d.numverify_error || 'Sin resultados en Numverify.')}</p>`;
+    : `<p class="text-sm text-gray-500 mb-5">${escapeHtml(d.numverify_error || 'Sin resultados.')}</p>`;
+
+  const tc = d.truecaller?.data?.[0];
+  const truecallerBlock = tc
+    ? `
+      <div class="flex items-center gap-3 mb-2 pt-4 border-t border-white/10">
+        <div class="tool-empty-icon">${icon('user', 'width="16" height="16"')}</div>
+        <div>
+          <p class="font-semibold">${escapeHtml(tc.name || 'Sin nombre')}</p>
+          <p class="text-sm text-gray-500">${[tc.altName, tc.internetAddresses?.[0]?.id].filter(Boolean).map(escapeHtml).join(' · ') || '—'}</p>
+        </div>
+      </div>`
+    : `<p class="text-sm text-gray-500 mb-5 pt-4 border-t border-white/10">No se pudo encontrar información adicional de este número.</p>`;
+
+  // WhatsApp's wa.me page moved to a client-side JS app a while back, so a
+  // server-side request can no longer tell "has WhatsApp" from "doesn't" —
+  // and Telegram has no public API to check a phone number without logging
+  // a real account into it. Instead of faking a result, give a direct link
+  // to check by hand in one click — same digits either way, no country
+  // code guessing needed since Numverify's international_format has it.
+  const digits = (nv?.international_format || number).replace(/\D/g, '');
+  const checkLinks = digits ? `
+    <div class="flex flex-wrap gap-2 mb-5">
+      <a href="https://wa.me/${digits}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Revisar en WhatsApp ↗</a>
+      <a href="https://t.me/+${digits}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Revisar en Telegram ↗</a>
+    </div>
+    <p class="text-[11px] text-gray-600 mb-5">No se puede confirmar automáticamente si el número tiene WhatsApp/Telegram (ninguna de las dos expone eso por API pública) — estos links abren el chat directo para verificarlo a mano.</p>` : '';
 
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <p class="font-mono text-sm text-gray-300 mb-4 break-all">${escapeHtml(number)}</p>
       ${numverifyBlock}
-      ${d.pending_sources?.length ? `<p class="text-[11px] text-gray-600 mt-1 pt-4 border-t border-white/10">Fuentes pendientes: ${d.pending_sources.map(escapeHtml).join(', ')}.</p>` : ''}
-      ${rawJsonBlock(d)}
+      ${truecallerBlock}
+      ${checkLinks}
+      ${rawJsonBlock(d, `phone-${number}.json`)}
     </div>`;
 }
 
@@ -587,8 +642,8 @@ async function hudsonRockRun(query) {
               ${s.top_logins?.length ? `<p class="text-[11px] text-gray-500 mt-1.5 font-mono truncate">logins: ${s.top_logins.map(escapeHtml).join(', ')}</p>` : ''}
             </div>`).join('')}
         </div>`
-      : `<p class="text-sm text-emerald-400 mb-5">✅ Sin infecciones de infostealer encontradas (Hudson Rock, vía Indicia).</p>`)
-    : `<p class="text-sm text-gray-500 mb-5">Hudson Rock (Indicia): ${escapeHtml(d.hudsonrock_error || 'sin resultados.')}</p>`;
+      : `<p class="text-sm text-emerald-400 mb-5">✅ Sin infecciones de infostealer encontradas.</p>`)
+    : `<p class="text-sm text-gray-500 mb-5">${escapeHtml(d.hudsonrock_error || 'Sin resultados.')}</p>`;
 
   if (!items.length && !stealers.length) {
     return `${oathnetCardOpen()}<p class="text-center text-sm text-gray-500 py-4">No se encontraron credenciales robadas por malware para "${escapeHtml(query)}".${hr ? '' : `<br><span class="text-xs">${escapeHtml(d.hudsonrock_error || '')}</span>`}</p>${rawJsonBlock(d, `hudsonrock-${query}.json`)}</div>`;
@@ -598,7 +653,7 @@ async function hudsonRockRun(query) {
     ${oathnetCardOpen()}
       ${hudsonRockBlock}
       ${items.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">${items.length} registro${items.length === 1 ? '' : 's'} adicional${items.length === 1 ? '' : 'es'} (OathNet)</p>
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">${items.length} registro${items.length === 1 ? '' : 's'} adicional${items.length === 1 ? '' : 'es'}</p>
         <div class="space-y-2">
           ${items.slice(0, 30).map(it => `
             <div class="border border-red-500/15 bg-red-500/[0.03] rounded-lg px-3 py-2.5">
@@ -607,40 +662,6 @@ async function hudsonRockRun(query) {
             </div>`).join('')}
         </div>` : ''}
       ${rawJsonBlock(d, `hudsonrock-${query}.json`)}
-    </div>`;
-}
-
-/* ---------- Mail OSINT — LeakCheck (public, no key) via /api/mail-osint.
-   Other requested sources (Hudson Rock, IntelX, OSINT Industries, Indicia)
-   aren't wired in yet — see backend/main.py mail_osint() for why. The
-   backend already reports them as pending_sources so the UI can say so
-   instead of silently omitting them. ---------- */
-async function mailOsintRun(query) {
-  const email = query.trim();
-  const d = await apiGet(`/api/mail-osint/${encodeURIComponent(email)}`);
-  const lc = d.leakcheck;
-
-  const leakcheckBlock = lc?.success
-    ? `
-      <p class="text-sm text-gray-300 mb-3">Encontrado en <span class="font-semibold text-red-400">${escapeHtml(String(lc.found ?? 0))}</span> filtracion${lc.found === 1 ? '' : 'es'} (LeakCheck, plan público — sin datos crudos)</p>
-      ${lc.sources?.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Fuentes</p>
-        <div class="flex flex-wrap gap-2 mb-4">
-          ${lc.sources.slice(0, 30).map(s => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(s.name || '—')}${s.date ? ` · ${escapeHtml(s.date)}` : ''}</span>`).join('')}
-        </div>` : ''}
-      ${lc.fields?.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Tipos de datos expuestos</p>
-        <div class="flex flex-wrap gap-2">
-          ${lc.fields.map(f => `<span class="pill rounded-full px-2.5 py-1 text-[11px] font-mono text-gray-400">${escapeHtml(f)}</span>`).join('')}
-        </div>` : ''}`
-    : `<p class="text-sm text-gray-500">${escapeHtml(d.leakcheck_error || 'Sin resultados en LeakCheck.')}</p>`;
-
-  return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="font-mono text-sm text-gray-300 mb-4 break-all">${escapeHtml(email)}</p>
-      ${leakcheckBlock}
-      ${d.pending_sources?.length ? `<p class="text-[11px] text-gray-600 mt-5 pt-4 border-t border-white/10">Fuentes pendientes de integrar (falta API key/docs confirmados): ${d.pending_sources.map(escapeHtml).join(', ')}.</p>` : ''}
-      ${rawJsonBlock(d)}
     </div>`;
 }
 
@@ -655,9 +676,12 @@ async function gmailLookupRun(query) {
     </div>`;
 }
 
-/* ---------- OathNet: Email Search — "Linked Accounts" panel, combining
-   Holehe (which services an email is registered on) with GHunt (a full
-   Google account profile when one is exposed) — /api/oathnet/email-search ---------- */
+/* ---------- Email OSINT — merged Mail OSINT + Email Search into one
+   report: LeakCheck (breach/leak data), Holehe via OathNet (which
+   services an email is registered on), GHunt via OathNet (a full Google
+   account profile when one is exposed), and Gravatar. Was two separate
+   cards hitting the same email — one combined report instead —
+   /api/email-osint ---------- */
 function linkedAccountCard(service, subtitle, statusLabel, statusColor, fields) {
   return `
     <details class="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
@@ -680,11 +704,12 @@ function linkedAccountCard(service, subtitle, statusLabel, statusColor, fields) 
     </details>`;
 }
 
-async function emailSearchRun(query) {
+async function emailOsintRun(query) {
   const email = query.replace(/\s+/g, '');
-  const d = await apiGet(`/api/oathnet/email-search/${encodeURIComponent(email)}`);
+  const d = await apiGet(`/api/email-osint/${encodeURIComponent(email)}`);
   const domains = d.data?.domains || [];
   const g = d.data?.google_account;
+  const lc = d.data?.leakcheck;
 
   const cards = [];
   if (g) {
@@ -706,16 +731,34 @@ async function emailSearchRun(query) {
     cards.push(linkedAccountCard('Gravatar', null, 'REGISTERED', '#34d399', [['Parsed', email], ['Profile Image', d.data.gravatar_url, true]]));
   }
 
+  const leakcheckBlock = lc?.success
+    ? `
+      <p class="text-sm text-gray-300 mb-3">Encontrado en <span class="font-semibold text-red-400">${escapeHtml(String(lc.found ?? 0))}</span> filtracion${lc.found === 1 ? '' : 'es'} (sin datos crudos)</p>
+      ${lc.sources?.length ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Fuentes</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          ${lc.sources.slice(0, 30).map(s => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(s.name || '—')}${s.date ? ` · ${escapeHtml(s.date)}` : ''}</span>`).join('')}
+        </div>` : ''}
+      ${lc.fields?.length ? `
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Tipos de datos expuestos</p>
+        <div class="flex flex-wrap gap-2">
+          ${lc.fields.map(f => `<span class="pill rounded-full px-2.5 py-1 text-[11px] font-mono text-gray-400">${escapeHtml(f)}</span>`).join('')}
+        </div>` : ''}`
+    : `<p class="text-sm text-gray-500">${escapeHtml(d.data?.leakcheck_error || 'Sin resultados.')}</p>`;
+
   return `
     ${oathnetCardOpen()}
       <div class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-300">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         LINKED ACCOUNTS (${cards.length})
       </div>
-      ${d.data?.quota_exhausted ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ Holehe sin cuota por ahora — mostrando solo lo que Google (GHunt) y Gravatar pudieron encontrar.</p>` : ''}
-      ${d.data?.holehe_error ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ Holehe: ${escapeHtml(d.data.holehe_error)}</p>` : ''}
-      ${cards.length ? `<div class="space-y-2">${cards.join('')}</div>` : `<p class="text-sm text-gray-500 text-center py-8">No se encontraron cuentas vinculadas a "${escapeHtml(email)}".</p>`}
-      ${rawJsonBlock(d, `email-search-${email}.json`)}
+      ${d.data?.quota_exhausted ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ Sin cuota disponible por ahora — mostrando solo lo que se pudo encontrar.</p>` : ''}
+      ${d.data?.holehe_error ? `<p class="text-[11px] text-amber-400 mb-3">⚠️ ${escapeHtml(d.data.holehe_error)}</p>` : ''}
+      ${cards.length ? `<div class="space-y-2 mb-5">${cards.join('')}</div>` : `<p class="text-sm text-gray-500 text-center py-6">No se encontraron cuentas vinculadas a "${escapeHtml(email)}".</p>`}
+
+      <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 pt-4 border-t border-white/10">Filtraciones</p>
+      ${leakcheckBlock}
+      ${rawJsonBlock(d, `email-osint-${email}.json`)}
     </div>`;
 }
 
@@ -726,10 +769,70 @@ async function discordRun(query) {
   const gridData = { ...u, username_history: (u.username_history || []).map(h => (h && h.name) || h) };
   delete gridData.breach_records;
   delete gridData.stealer_records;
+  delete gridData.avatar_url;
+  delete gridData.banner_url;
+  delete gridData.username;
+  delete gridData.global_name;
+  delete gridData.discord_api;
+  delete gridData.discord_api_error;
+  delete gridData.connected_accounts;
+  delete gridData.connections_error;
+
+  // Real public_flags/accent_color from Discord's own API (needs a free
+  // bot token, see .env.example) — separate from OathNet's "badges" above,
+  // which aren't always this precise.
+  const api = u.discord_api;
+  const discordApiBlock = api
+    ? `
+      <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Discord API (oficial)</p>
+      <div class="flex flex-wrap items-center gap-2 mb-1">
+        ${api.accent_color ? `<span class="w-5 h-5 rounded-full border border-white/20 shrink-0" style="background:${api.accent_color}" title="${api.accent_color}"></span>` : ''}
+        ${api.is_bot ? `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">Bot</span>` : ''}
+        ${api.is_system ? `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">Sistema</span>` : ''}
+        ${(api.public_flags_badges || []).map(b => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(b)}</span>`).join('')}
+        ${!api.accent_color && !api.is_bot && !api.is_system && !api.public_flags_badges?.length ? `<span class="text-sm text-gray-500">Sin badges públicos.</span>` : ''}
+      </div>`
+    : `<p class="text-[11px] text-gray-600 mt-5">Discord API: ${escapeHtml(u.discord_api_error || 'sin datos.')}</p>`;
+
+  // Only what the account owner already chose to show publicly on their
+  // profile (via Indicia) — never anything requiring OAuth consent.
+  const connections = u.connected_accounts;
+  let connectionsBlock;
+  if (connections && Object.keys(connections).length) {
+    let i = 0;
+    const cards = Object.entries(connections).flatMap(([platform, value]) => {
+      const list = Array.isArray(value) ? value : [value];
+      return list.map(acc => {
+        const delay = (i++ * 0.06).toFixed(2);
+        return `
+          <div class="animate-pop-in bg-black/30 border border-white/10 rounded-lg px-3 py-2.5" style="animation-delay:${delay}s">
+            <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${escapeHtml(platform)}</p>
+            ${acc.link
+              ? `<a href="${acc.link}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">${escapeHtml(acc.name || acc.link)}</a>`
+              : `<p class="text-sm font-mono text-gray-200 break-all">${escapeHtml(acc.name || acc.id || '—')}</p>`}
+          </div>`;
+      });
+    });
+    connectionsBlock = `
+      <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Conexiones públicas</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">${cards.join('')}</div>`;
+  } else {
+    connectionsBlock = `<p class="text-[11px] text-gray-600 mt-5">Conexiones: ${escapeHtml(u.connections_error || 'ninguna pública visible.')}</p>`;
+  }
 
   return `
     ${oathnetCardOpen()}
-      ${embedFieldGrid(gridData, { id: 'ID', global_name: 'Nombre', avatar_url: 'Avatar', banner_url: 'Banner', creation_date: 'Cuenta creada', badges: 'Badges', username_history: 'Nombres anteriores' })}
+      ${u.banner_url ? `<img src="${u.banner_url}" class="w-full h-28 sm:h-36 object-cover rounded-xl border border-white/10 mb-[-2.5rem]" alt="">` : ''}
+      <div class="flex items-end gap-4 mb-5 ${u.banner_url ? 'pl-2' : ''}">
+        ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-20 h-20 rounded-2xl border-4 border-black/60 shadow-lg" alt="">` : ''}
+        <div class="pb-1">
+          <p class="font-semibold text-lg">${escapeHtml(u.global_name || u.username)}</p>
+          <p class="text-sm text-gray-500 font-mono">@${escapeHtml(u.username)}</p>
+        </div>
+      </div>
+      ${embedFieldGrid(gridData, { id: 'ID', global_name: 'Nombre', creation_date: 'Cuenta creada', badges: 'Badges', username_history: 'Nombres anteriores' })}
+      ${discordApiBlock}
+      ${connectionsBlock}
       ${u.breach_records?.length ? `
         <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">Registros cruzados (Web Databases)</p>
         <div class="space-y-2">
@@ -743,7 +846,7 @@ async function discordRun(query) {
             </div>`).join('')}
         </div>` : ''}
       ${u.stealer_records?.length ? `
-        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Registros cruzados (Hudson Rock / stealer logs)</p>
+        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Registros cruzados (stealer logs)</p>
         <div class="space-y-2">
           ${u.stealer_records.slice(0, 10).map(r => `
             <div class="border border-red-500/15 bg-red-500/[0.03] rounded-lg px-3 py-2.5">
@@ -770,40 +873,29 @@ async function xboxRun(query) {
     </div>`;
 }
 
-/* ---------- Reddit — /api/reddit (public JSON, no key) ---------- */
-async function redditRun(query) {
-  const username = query.trim().replace(/^u\//, '').replace(/^\//, '');
-  const d = await apiGet(`/api/reddit/${encodeURIComponent(username)}`);
-
-  return `
-    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <div class="flex items-center gap-4 mb-5">
-        ${d.icon_img ? `<img src="${d.icon_img.split('?')[0]}" class="w-16 h-16 rounded-full border border-white/10" alt="">` : ''}
-        <div>
-          <p class="font-semibold text-lg">u/${escapeHtml(d.name)}</p>
-          <p class="text-sm text-gray-500">Cuenta creada: ${d.created_utc ? new Date(d.created_utc * 1000).toLocaleDateString() : '—'}</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-5">
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Karma posts</p><p class="font-semibold">${(d.link_karma ?? 0).toLocaleString()}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Karma comentarios</p><p class="font-semibold">${(d.comment_karma ?? 0).toLocaleString()}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Premium</p><p class="font-semibold">${d.is_gold ? 'Sí' : 'No'}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Verificado</p><p class="font-semibold">${d.verified ? 'Sí' : 'No'}</p></div>
-      </div>
-      <a href="https://reddit.com/user/${escapeHtml(d.name)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
-      ${rawJsonBlock(d)}
-    </div>`;
-}
-
-/* ---------- Link Resolver — /api/link-resolver (no key, follows the real redirect chain) ---------- */
+/* ---------- Link Resolver — /api/link-resolver (no key). Merged three
+   overlapping URL tools into one: follows the real redirect chain,
+   cross-checks the final domain against Phishunt's phishing-domain feed,
+   and shows the URL-encoded/decoded forms — instead of three separate
+   cards (Link Resolver, Phishing Feed, URL Encode/Decode) for the same
+   underlying URL. ---------- */
 async function linkResolverRun(query) {
   const d = await apiGet('/api/link-resolver', { url: query.trim() });
+  const pm = d.phishing_match;
 
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">URL final</p>
       <a href="${d.final_url}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 break-all hover:underline">${escapeHtml(d.final_url)}</a>
-      <p class="text-sm text-gray-500 mt-4 mb-2">Cadena de redirecciones (${d.chain.length} salto${d.chain.length === 1 ? '' : 's'})</p>
+
+      ${pm
+        ? `<div class="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+             <p class="text-sm font-semibold text-red-400 mb-1">⚠️ Dominio marcado como phishing</p>
+             <p class="text-[11px] text-gray-400">Empresa suplantada: ${escapeHtml(pm.company || '—')} · Visto: ${escapeHtml(pm.first_seen || pm.date || '—')}</p>
+           </div>`
+        : `<p class="mt-4 text-[11px] text-gray-500">✓ No aparece en el feed de dominios de phishing (últimas ~48h).</p>`}
+
+      <p class="text-sm text-gray-500 mt-5 mb-2">Cadena de redirecciones (${d.chain.length} salto${d.chain.length === 1 ? '' : 's'})</p>
       <div class="space-y-1.5">
         ${d.chain.map((h, i) => `
           <div class="flex items-center gap-3 text-xs font-mono bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2">
@@ -812,6 +904,12 @@ async function linkResolverRun(query) {
             <span class="text-[11px] ${h.status < 400 ? 'text-emerald-400' : 'text-red-400'} shrink-0">${h.status}</span>
           </div>`).join('')}
       </div>
+
+      <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5 pt-4 border-t border-white/10">Decodificada (input)</p>
+      <p class="text-xs font-mono text-gray-300 break-all bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2">${escapeHtml(d.decoded)}</p>
+      <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-3">Codificada (URL final)</p>
+      <p class="text-xs font-mono text-gray-300 break-all bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2">${escapeHtml(d.encoded)}</p>
+
       ${rawJsonBlock(d)}
     </div>`;
 }
@@ -885,6 +983,34 @@ async function playstationRun(query) {
     </div>`;
 }
 
+/* ---------- Image Geolocation — /api/image-geolocation (proxies to a
+   self-hosted Netryx Astra V2 instance — see backend/main.py) ---------- */
+async function imageGeolocationRun(file) {
+  const d = await apiPostFile('/api/image-geolocation', 'image', file);
+  const lat = d.lat ?? d.latitude;
+  const lon = d.lon ?? d.lng ?? d.longitude;
+  const hasCoords = typeof lat === 'number' && typeof lon === 'number';
+  const mapsUrl = hasCoords ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}` : null;
+
+  return `
+    <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="tool-empty-icon">${icon('pin', 'width="20" height="20"')}</div>
+        <div>
+          <p class="text-lg font-semibold font-mono">${hasCoords ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : 'Sin coordenadas'}</p>
+          <p class="text-sm text-gray-400">${[d.city, d.region, d.country].filter(Boolean).join(', ') || '—'}</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-5">
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Confianza</p><p class="font-semibold">${d.confidence != null ? `${(d.confidence * 100).toFixed(0)}%` : '—'}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Radio de búsqueda</p><p class="font-semibold">${d.radius_km != null ? `${d.radius_km} km` : '—'}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Fuente</p><p class="font-semibold">Alice${d.source === 'exif' ? ' · EXIF' : ''}</p></div>
+      </div>
+      ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300">Ver en el mapa →</a>` : ''}
+      ${rawJsonBlock(d, 'image-geolocation.json')}
+    </div>`;
+}
+
 window.LIVE_HANDLERS = {
   'ip-info': { run: ipInfoRun },
   'whois': { run: whoisRun },
@@ -892,7 +1018,6 @@ window.LIVE_HANDLERS = {
   'wayback-machine': { run: waybackRun },
   'github': { run: githubRun },
   'roblox': { run: robloxRun },
-  'steam': { run: steamRun },
   'app-store-search': { run: appStoreRun },
   'crypto-address-analyzer': { run: cryptoRun },
   'certificate-lookup': { run: certificateRun },
@@ -901,11 +1026,9 @@ window.LIVE_HANDLERS = {
   'web-databases': { run: webDatabasesRun },
   'hudson-rock': { run: hudsonRockRun },
   'gmail-lookup': { run: gmailLookupRun },
-  'mail-osint': { run: mailOsintRun },
-  'email-search': { run: emailSearchRun },
+  'email-osint': { run: emailOsintRun },
   'discord': { run: discordRun },
   'xbox': { run: xboxRun },
-  'reddit': { run: redditRun },
   'link-resolver': { run: linkResolverRun },
   'usernames': { run: usernamesRun },
   'roblox-profile-scraper': { run: robloxScraperRun },
@@ -913,4 +1036,5 @@ window.LIVE_HANDLERS = {
   'tiktok': { run: tiktokRun },
   'epic-games': { run: epicGamesRun },
   'phone-search': { run: phoneSearchRun },
+  'image-geolocation': { run: imageGeolocationRun },
 };

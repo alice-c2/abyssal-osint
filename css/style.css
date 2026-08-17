@@ -118,6 +118,16 @@ code .fn { color: #fda4af; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Connection cards (Discord connectedAccounts, etc.) pop in one by one —
+   pair with an inline `animation-delay` per card for the stagger. */
+.animate-pop-in {
+  animation: popIn .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.85) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .mobile-panel {
   max-height: 0;
   overflow: hidden;

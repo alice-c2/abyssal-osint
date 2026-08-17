@@ -38,12 +38,10 @@ const ICON_PATHS = {
   discord: '<circle cx="9" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M6 8.5C7 6.5 9.3 5.5 12 5.5s5 1 6 3M5 15c0 2 1 4 2.5 4.5L8 17M19 15c0 2-1 4-2.5 4.5L16 17"/>',
   github: '<path d="M12 2a10 10 0 00-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1-1.5-1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.2-.5-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.5.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A10 10 0 0012 2z" fill="currentColor" stroke="none"/>',
   flag: '<path d="M4 4l7 7-7 9M11 4h9v9"/>',
-  reddit: '<circle cx="12" cy="13" r="7"/><circle cx="9" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1" fill="currentColor" stroke="none"/><path d="M9 16.5c1 .8 5 .8 6 0"/><path d="M12 6L12 3M12 3l3 1"/><circle cx="15.5" cy="4" r="1.2"/>',
   music: '<path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/>',
   xbox: '<circle cx="12" cy="12" r="9"/><path d="M8 8c1.5 3 2.5 5 4 8 1.5-3 2.5-5 4-8M6 17c1.5-3 3.5-5 6-5s4.5 2 6 5M9.5 7c.8-.6 1.6-1 2.5-1s1.7.4 2.5 1"/>',
   playstation: '<path d="M9 4v15l3 1V6.5c1 .3 1.5.9 1.5 1.7 0 1-.7 1.5-1.8 1.3v2c2.5.5 4.3-.6 4.3-3 0-2-1.5-3.4-4-4.1L9 4z"/><path d="M4 18l6 2M20 15.5c0 1.2-2 2-4.5 1.2l-1-.3"/>',
   epic: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
-  steam: '<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="14.5" r="2"/><circle cx="15" cy="9" r="2.3"/><path d="M10 13.5L13 11"/>',
   bolt: '<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
   idcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M6 16c0-1.4 1.1-2.2 2.5-2.2S11 14.6 11 16"/><line x1="13.5" y1="9.5" x2="18" y2="9.5"/><line x1="13.5" y1="12.5" x2="18" y2="12.5"/>',
   tag: '<path d="M12 3h6a2 2 0 012 2v6l-9 9-8-8 9-9z"/><circle cx="15.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/>',
@@ -63,7 +61,6 @@ function icon(name, extra) {
 const TOP_NAV = [
   { id: 'dashboard', label: 'Dashboard', iconKey: 'home' },
   { id: 'alice', label: 'Alice AI', iconKey: 'sparkle' },
-  { id: 'unified', label: 'Unified Search', iconKey: 'search' },
   { id: 'cases', label: 'Cases', iconKey: 'folder' },
   { id: 'activity', label: 'Activity', iconKey: 'activity' },
   { id: 'paises', label: 'Países', iconKey: 'globe' },
@@ -77,20 +74,18 @@ const SECTIONS = [
       { id: 'web-databases', label: 'Web Databases', iconKey: 'database', desc: 'Search breach and leak databases across multiple sources', placeholder: 'Enter email, username, phone, or password...', credits: 1 },
       { id: 'background-check', label: 'Background Check', iconKey: 'shield', desc: 'Run a comprehensive background report on a person', placeholder: 'Enter full name...', credits: 5 },
       { id: 'reverse-face-search', label: 'Reverse Face Search', iconKey: 'scan', desc: 'Find matches for a face across social profiles and the open web', placeholder: 'Upload a photo to search...', credits: 5 },
-      { id: 'image-geolocation', label: 'Image Geolocation', iconKey: 'pin', desc: 'Estimate where a photo was taken using AI', placeholder: 'Upload an image to geolocate...', credits: 3 },
+      { id: 'image-geolocation', label: 'Image Geolocation', iconKey: 'pin', desc: 'Estimate where a photo was taken using Alice AI', placeholder: 'Upload an image to geolocate...', credits: 3, inputType: 'file' },
       { id: 'gmail-lookup', label: 'Gmail Lookup', iconKey: 'mail', desc: 'Check Gmail account details and linked activity', placeholder: 'Enter a Gmail address...', credits: 1 },
-      { id: 'mail-osint', label: 'Mail OSINT', iconKey: 'mail', desc: 'Breach search via LeakCheck (more sources pending API access)', placeholder: 'Enter an email address...', credits: 1 },
+      { id: 'email-osint', label: 'Email OSINT', iconKey: 'mail', desc: 'Breaches, linked accounts, and Google profile for an email — merged Mail OSINT + Email Search', placeholder: 'Enter an email address...', credits: 1 },
       { id: 'hudson-rock', label: 'Hudson Rock', iconKey: 'bug', desc: 'Search infostealer malware logs for exposed credentials', placeholder: 'Enter email, username, or domain...', credits: 2 },
-      { id: 'seon', label: 'SEON', iconKey: 'alert', desc: 'Fraud and risk intelligence lookup', placeholder: 'Enter email, phone, or IP...', credits: 2 },
     ],
   },
   {
-    label: 'US Search',
+    label: 'General Search',
     items: [
-      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, owner, and location info for a phone number (sources pending)', placeholder: 'Enter phone number...', credits: 1 },
+      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, location, and owner info for a phone number', placeholder: 'Enter phone number...', credits: 1 },
       { id: 'address-search', label: 'Address Search', iconKey: 'house', desc: 'Find residents and property history for an address', placeholder: 'Enter a street address...', credits: 1 },
-      { id: 'email-search', label: 'Email Search', iconKey: 'at', desc: 'Find identity info linked to an email address', placeholder: 'Enter an email address...', credits: 1 },
-      { id: 'person-search', label: 'Person Search', iconKey: 'user', desc: 'Build out a full US identity profile', placeholder: 'Enter full name...', credits: 2 },
+      { id: 'person-search', label: 'Person Search', iconKey: 'user', desc: 'Build out a full identity profile', placeholder: 'Enter full name...', credits: 2 },
       { id: 'court-records', label: 'Court Records', iconKey: 'gavel', desc: 'Search court and criminal records', placeholder: 'Enter full name...', credits: 2 },
     ],
   },
@@ -111,25 +106,26 @@ const SECTIONS = [
     ],
   },
   {
+    /* Native integrations only (GitHub, TikTok, Discord, Xbox,
+       PlayStation, Epic, Roblox). SocialCrawl-powered platforms and Steam
+       were removed. */
     label: 'Social',
     items: [
       { id: 'usernames', label: 'Usernames', iconKey: 'target', desc: 'Check a username across 40+ platforms', placeholder: 'Enter a username...', credits: 1 },
       { id: 'github', label: 'GitHub', iconKey: 'github', desc: 'Search GitHub users for profile and repo info', placeholder: 'Enter a GitHub username...', credits: 1 },
       { id: 'roblox', label: 'Roblox', iconKey: 'flag', desc: 'Search Roblox users for profile info', placeholder: 'Enter a Roblox username or ID...', credits: 1 },
       { id: 'discord', label: 'Discord', iconKey: 'discord', desc: 'Search Discord users for profile and server info', placeholder: 'Enter Discord user ID...', credits: 1 },
-      { id: 'reddit', label: 'Reddit', iconKey: 'reddit', desc: 'Search Reddit users for profile and post history', placeholder: 'Enter a Reddit username...', credits: 1 },
       { id: 'tiktok', label: 'TikTok', iconKey: 'music', desc: 'Search TikTok users for profile info', placeholder: 'Enter a TikTok username...', credits: 1 },
       { id: 'xbox', label: 'Xbox', iconKey: 'xbox', desc: 'Search Xbox Live profiles', placeholder: 'Enter a gamertag...', credits: 1 },
       { id: 'playstation', label: 'PlayStation', iconKey: 'playstation', desc: 'Search PlayStation Network profiles', placeholder: 'Enter a PSN ID...', credits: 1 },
       { id: 'epic-games', label: 'Epic Games', iconKey: 'epic', desc: 'Search Epic Games / Fortnite profiles', placeholder: 'Enter an Epic Games username...', credits: 1 },
-      { id: 'steam', label: 'Steam', iconKey: 'steam', desc: 'Search Steam profiles for account info', placeholder: 'Enter a Steam ID or vanity URL...', credits: 1 },
     ],
   },
   {
     label: 'Tools',
     items: [
       { id: 'app-store-search', label: 'App Store Search', iconKey: 'apps', desc: 'Search iOS/Android app store listings', placeholder: 'Enter an app name or developer...', credits: 1 },
-      { id: 'link-resolver', label: 'Link Resolver', iconKey: 'link', desc: 'Resolve shortened and redirected links', placeholder: 'Enter a shortened URL...', credits: 1 },
+      { id: 'link-resolver', label: 'Link Resolver', iconKey: 'link', desc: 'Resolve shortened/redirected links, check for phishing, and view encoded/decoded forms', placeholder: 'Enter a shortened URL...', credits: 1 },
       { id: 'crypto-address-analyzer', label: 'Crypto Address Analyzer', iconKey: 'coin', desc: 'Analyze cryptocurrency wallet activity', placeholder: 'Enter a wallet address...', credits: 2 },
       { id: 'double-counter-bypass', label: 'Double Counter Bypass', iconKey: 'copy', desc: 'Bypass duplicate-check protections', placeholder: 'Enter a username or ID...', credits: 1 },
       { id: 'discord-alt-identifier', label: 'Discord Alt Identifier', iconKey: 'discord', desc: 'Detect linked and alt Discord accounts', placeholder: 'Enter a Discord user ID...', credits: 2 },
@@ -249,7 +245,6 @@ function selectTool(id) {
 
   if (id === 'dashboard') { main.innerHTML = renderDashboard(); }
   else if (id === 'alice') { main.innerHTML = renderAliceChat(); mountAliceChat(); }
-  else if (id === 'unified') { main.innerHTML = renderUnified(); }
   else if (id === 'cases') { main.innerHTML = renderCases(); }
   else if (id === 'activity') { main.innerHTML = renderActivity(); }
   else if (id === 'paises') { main.innerHTML = renderCountries(); }
@@ -297,11 +292,17 @@ function renderTool(tool) {
     </div>` : ''}
 
     <div class="flex items-center gap-3 mb-8">
+      ${tool.inputType === 'file' ? `
+      <label for="toolFileInput" class="flex-1 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 cursor-pointer">
+        ${icon('pin', 'class="text-gray-500 shrink-0"')}
+        <span id="toolFileLabel" class="flex-1 text-sm text-gray-500 truncate">${tool.placeholder}</span>
+        <input id="toolFileInput" type="file" accept="image/*" class="hidden">
+      </label>` : `
       <div class="flex-1 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
         ${icon('search', 'class="text-gray-500 shrink-0"')}
         <input id="toolQueryInput" type="text" name="q_${Math.random().toString(36).slice(2)}" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" placeholder="${tool.placeholder}" class="flex-1 bg-transparent outline-none text-sm placeholder-gray-500">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-600 shrink-0"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"/></svg>
-      </div>
+      </div>`}
       <button id="toolSearchBtn" class="px-5 py-3 rounded-xl bg-primary-600 hover:bg-primary-500 font-medium text-sm flex items-center gap-2 transition-colors shrink-0 disabled:opacity-50">
         ${live ? icon('search', 'width="14" height="14"') : icon('coin')}
         <span id="toolSearchBtnLabel">${live ? 'Search' : tool.credits + ' credit' + (tool.credits > 1 ? 's' : '')}</span>
@@ -315,7 +316,7 @@ function renderTool(tool) {
     <div id="toolResults" class="rounded-2xl border border-white/10 py-24 flex flex-col items-center justify-center gap-3 text-center">
       <div class="tool-empty-icon">${icon(tool.iconKey, 'width="22" height="22"')}</div>
       <p class="font-semibold">No results yet</p>
-      <p class="text-sm text-gray-500">${live ? 'Enter a query above to search — this one calls a real API.' : 'Enter a query above to search.'}</p>
+      <p class="text-sm text-gray-500">${tool.inputType === 'file' ? 'Upload a photo above to search — this one calls a real API.' : (live ? 'Enter a query above to search — this one calls a real API.' : 'Enter a query above to search.')}</p>
     </div>
   </div>`;
 }
@@ -326,15 +327,23 @@ function mountTool(tool) {
   const live = window.LIVE_HANDLERS && window.LIVE_HANDLERS[tool.id];
   if (!live) return;
 
-  const input = document.getElementById('toolQueryInput');
+  const isFile = tool.inputType === 'file';
+  const input = document.getElementById(isFile ? 'toolFileInput' : 'toolQueryInput');
+  const fileLabel = isFile ? document.getElementById('toolFileLabel') : null;
   const keyInput = document.getElementById('toolApiKey');
   const btn = document.getElementById('toolSearchBtn');
   const btnLabel = document.getElementById('toolSearchBtnLabel');
   const results = document.getElementById('toolResults');
 
+  if (isFile) {
+    input.addEventListener('change', () => {
+      fileLabel.textContent = input.files[0] ? input.files[0].name : tool.placeholder;
+    });
+  }
+
   async function run() {
-    const query = input.value.trim();
-    if (!query) { input.focus(); return; }
+    const value = isFile ? input.files[0] : input.value.trim();
+    if (!value) { input.focus(); if (isFile) input.click(); return; }
 
     let apiKey = '';
     if (live.needsKey) {
@@ -355,7 +364,7 @@ function mountTool(tool) {
     results.innerHTML = loadingBlock();
 
     try {
-      const html = await live.run(query, apiKey);
+      const html = await live.run(value, apiKey);
       results.className = '';
       results.innerHTML = html;
     } catch (err) {
@@ -368,7 +377,7 @@ function mountTool(tool) {
   }
 
   btn.addEventListener('click', run);
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+  if (!isFile) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
 }
 
 function loadingBlock() {
@@ -464,54 +473,117 @@ function renderDashboard() {
   </div>`;
 }
 
-function renderUnified() {
-  return `
-  <div class="max-w-3xl mx-auto px-8 py-16 text-center">
-    <div class="w-12 h-12 rounded-xl bg-primary-500/15 flex items-center justify-center text-primary-300 mx-auto mb-5">${icon('search', 'width="20" height="20"')}</div>
-    <h1 class="text-2xl font-semibold mb-2">Unified Search</h1>
-    <p class="text-sm text-gray-500 mb-8">Search across every connected source in one query.</p>
-
-    <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-3.5 mb-10">
-      ${icon('search', 'class="text-gray-500 shrink-0"')}
-      <input type="text" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" placeholder="Search names, emails, IPs, usernames..." class="flex-1 bg-transparent outline-none text-sm placeholder-gray-500">
-      <button class="w-9 h-9 shrink-0 rounded-full bg-primary-600 flex items-center justify-center">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
-    </div>
-
-    <div class="rounded-2xl border border-white/10 py-16 flex flex-col items-center justify-center gap-2 text-left text-center">
-      <div class="tool-empty-icon">${icon('database', 'width="22" height="22"')}</div>
-      <p class="font-semibold">No recent searches</p>
-      <p class="text-sm text-gray-500">Results from all 30+ sources will appear here.</p>
-    </div>
-  </div>`;
-}
 
 /* ================= Cases (Obsidian-like note graph) ================= */
 
-let CASES = [
-  {
-    id: 'demo-case-1',
-    name: 'Operación Fénix',
-    updated: 'Updated 2h ago',
-    notes: [
-      { id: 'n-morgan', title: 'Morgan Harper', tags: ['person', 'subject'],
-        content: `Primary subject of the investigation.\n\nLinked accounts:\n- [[Twitter - mharper]]\n- [[GitHub - mharper]]\n- [[Discord - 123456789012345678]]\n\nSuspected infrastructure: [[IP - 104.21.48.23]]` },
-      { id: 'n-twitter', title: 'Twitter - mharper', tags: ['social', 'twitter'],
-        content: `14,202 followers · 214 following\nBio: OSINT & threat intel. Opinions my own.\n\nLinked to [[Morgan Harper]].` },
-      { id: 'n-github', title: 'GitHub - mharper', tags: ['social', 'github'],
-        content: `861 followers · 37 public repos\n\nLinked to [[Morgan Harper]].` },
-      { id: 'n-discord', title: 'Discord - 123456789012345678', tags: ['social', 'discord'],
-        content: `Discord account tied to [[Morgan Harper]].\nShares servers with unverified alt accounts.` },
-      { id: 'n-ip', title: 'IP - 104.21.48.23', tags: ['infrastructure'],
-        content: `443/tcp open · nginx · Cloudflare, Inc.\nHostnames: [[target.io]]\n\nPossibly linked to [[Morgan Harper]].` },
-      { id: 'n-domain', title: 'target.io', tags: ['infrastructure', 'domain'],
-        content: `Resolves to [[IP - 104.21.48.23]].\nWHOIS registrant redacted.` },
-    ],
-  },
-];
+let CASES = [];
 
 const workspace = { caseId: null, noteId: null, view: 'note', editing: false };
+
+/* Node color by tag — Obsidian-style typed graph instead of one flat color */
+const TAG_COLORS = {
+  person:         { base: 'rgba(248,113,113,0.92)', glow: 'rgba(239,68,68,0.85)' },
+  social:         { base: 'rgba(96,165,250,0.92)',  glow: 'rgba(59,130,246,0.8)' },
+  infrastructure: { base: 'rgba(52,211,153,0.92)',  glow: 'rgba(16,185,129,0.8)' },
+  found:          { base: 'rgba(251,191,36,0.92)',  glow: 'rgba(245,158,11,0.8)' },
+  default:        { base: 'rgba(209,213,219,0.88)', glow: 'rgba(156,163,175,0.6)' },
+};
+
+function primaryTag(note) {
+  const tags = note.tags || [];
+  if (tags.includes('found')) return 'found';
+  for (const key of ['person', 'social', 'infrastructure']) if (tags.includes(key)) return key;
+  return 'default';
+}
+
+/* Which live tool a free-text graph search maps to, and what tag the
+   resulting node should carry — a lightweight "framework" so the case
+   graph grows from whatever the investigation actually turns up. */
+const TOOL_TAG = {
+  'ip-info': 'infrastructure', 'whois': 'infrastructure', 'dns-recon': 'infrastructure',
+  'shodan': 'infrastructure', 'virustotal': 'infrastructure', 'certificate-lookup': 'infrastructure',
+  'discord': 'social', 'usernames': 'social', 'github': 'social',
+  'tiktok': 'social', 'xbox': 'social', 'playstation': 'social',
+  'epic-games': 'social', 'roblox': 'social', 'roblox-profile-scraper': 'social',
+  'email-osint': 'person', 'gmail-lookup': 'person',
+  'web-databases': 'person', 'hudson-rock': 'person', 'phone-search': 'person',
+};
+
+/* Query shape -> which of the modules we already have to pivot through.
+   One graph search now fans out across several real handlers (Mail
+   OSINT, Hudson Rock, Web Databases, Shodan...) instead of guessing a
+   single tool — the graph node is a consolidated report, not a single
+   source's half-answer. */
+/* Used only to pick the node's color/tag — the actual fan-out below hits
+   every live module regardless of query shape, not just this one. */
+function primaryToolForQuery(q) {
+  const s = q.trim();
+  if (/^\d{15,20}$/.test(s)) return 'discord';
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(s)) return 'ip-info';
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return 'email-osint';
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(s)) return 'whois';
+  return 'usernames';
+}
+
+/* Most tool.run() calls render a single profile/record, so one satellite
+   node per tool is right. A few modules return a LIST of genuinely
+   separate findings (each infected machine, each breach hit, each
+   platform a username exists on) — those get their own extractor here so
+   the graph gets one circle per finding instead of one circle per module
+   with everything flattened into a wall of text. Pulls the underlying
+   JSON directly (apiGet is global from live-tools.js) instead of
+   re-parsing the rendered HTML card. */
+const GRAPH_MULTI_ITEM_EXTRACTORS = {
+  'hudson-rock': async (query) => {
+    const d = await apiGet(`/api/oathnet/stealer/${encodeURIComponent(query.trim())}`);
+    const stealers = d.hudsonrock?.stealers || [];
+    return stealers.map((s, i) => ({
+      label: `Hudson Rock — equipo ${i + 1}${s.computer_name && s.computer_name !== 'Not Found' ? ` (${s.computer_name})` : ''}`,
+      plain: [
+        `Sistema: ${s.operating_system || '—'}`,
+        `Comprometido: ${fmtDate(s.date_compromised)}`,
+        `IP: ${s.ip || '—'}`,
+        `Servicios de usuario: ${s.total_user_services ?? '—'} · corporativos: ${s.total_corporate_services ?? '—'}`,
+        s.top_logins?.length ? `Logins expuestos: ${s.top_logins.join(', ')}` : '',
+      ].filter(Boolean).join('\n'),
+    }));
+  },
+  'web-databases': async (query) => {
+    const d = await apiGet(`/api/oathnet/breach/${encodeURIComponent(query.trim())}`);
+    const items = (d.data?.items || []).slice(0, 15);
+    return items.map((it, i) => ({
+      label: `Web Databases — ${it.dbname || ('registro ' + (i + 1))}`,
+      plain: [
+        it.email ? `Email: ${it.email}` : '',
+        it.username ? `Usuario: ${it.username}` : '',
+        it.password ? `Password: ${it.password}` : '',
+        it.password_hash ? `Hash: ${String(it.password_hash).slice(0, 40)}` : '',
+        it.indexed_at ? `Indexado: ${it.indexed_at}` : '',
+      ].filter(Boolean).join('\n') || '(sin campos legibles)',
+    }));
+  },
+  'usernames': async (query) => {
+    const d = await apiGet(`/api/usernames/${encodeURIComponent(query.trim().replace(/^@/, ''))}`);
+    const found = Object.entries(d.platforms || {}).filter(([, v]) => v.exists === true);
+    return found.map(([name, v]) => ({
+      label: `Usernames — ${name}`,
+      plain: `URL: ${v.url || '—'}`,
+    }));
+  },
+};
+
+async function fetchGraphToolItems(toolId, query) {
+  const extractor = GRAPH_MULTI_ITEM_EXTRACTORS[toolId];
+  if (extractor) {
+    const items = await extractor(query);
+    return items.map(it => ({ toolId, toolLabel: it.label, plain: it.plain }));
+  }
+  const html = await window.LIVE_HANDLERS[toolId].run(query);
+  const plain = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!plain) return [];
+  const toolLabel = (TOOL_BY_ID[toolId] && TOOL_BY_ID[toolId].label) || toolId;
+  return [{ toolId, toolLabel, plain: plain.slice(0, 500) }];
+}
 
 function renderCases() {
   return `
@@ -739,7 +811,19 @@ function renderGraphPane() {
   return `
   <div class="h-full relative">
     <canvas id="caseGraphCanvas" class="w-full h-full"></canvas>
-    <p class="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-gray-500">Drag nodes to rearrange · click a node to open its note</p>
+
+    <div class="absolute top-4 right-4 w-64 max-w-[65vw]">
+      <div class="flex items-center gap-2 rounded-full border border-white/10 bg-black/70 backdrop-blur px-3.5 py-2">
+        ${icon('search', 'width="13" height="13" class="text-gray-500 shrink-0"')}
+        <input id="graphSearchInput" type="text" autocomplete="off" name="q_${Math.random().toString(36).slice(2)}" placeholder="Buscar y pivotar..." class="flex-1 min-w-0 bg-transparent outline-none text-xs placeholder-gray-500">
+        <button id="graphSearchBtn" title="Buscar y agregar a la graph" class="shrink-0 w-5 h-5 rounded-full bg-primary-600 hover:bg-primary-500 flex items-center justify-center transition-colors disabled:opacity-50">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <p id="graphSearchStatus" class="text-[10px] text-gray-500 mt-1.5 text-right leading-snug"></p>
+    </div>
+
+    <p class="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-gray-500">Drag · Shift+drag to connect · click to open</p>
   </div>`;
 }
 
@@ -768,25 +852,33 @@ function initGraph(c) {
   }
   resize();
 
-  const nodes = c.notes.map(n => ({
+  let nodes = c.notes.map(n => ({
     id: n.id, label: n.title,
     x: w / 2 + (Math.random() - 0.5) * w * 0.6,
     y: h / 2 + (Math.random() - 0.5) * h * 0.6,
     vx: 0, vy: 0,
   }));
-  const nodeById = {};
+  let nodeById = {};
   nodes.forEach(n => { nodeById[n.id] = n; });
 
-  const edges = [];
-  c.notes.forEach(n => {
-    parseLinks(n.content).forEach(l => {
-      const target = findNoteByTitle(c, l);
-      if (target && target.id !== n.id &&
-          !edges.some(e => (e.a === n.id && e.b === target.id) || (e.a === target.id && e.b === n.id))) {
-        edges.push({ a: n.id, b: target.id });
-      }
+  let edges = [];
+  let degree = {};
+
+  function rebuildEdges() {
+    edges = [];
+    c.notes.forEach(n => {
+      parseLinks(n.content).forEach(l => {
+        const target = findNoteByTitle(c, l);
+        if (target && target.id !== n.id &&
+            !edges.some(e => (e.a === n.id && e.b === target.id) || (e.a === target.id && e.b === n.id))) {
+          edges.push({ a: n.id, b: target.id });
+        }
+      });
     });
-  });
+    degree = {};
+    edges.forEach(e => { degree[e.a] = (degree[e.a] || 0) + 1; degree[e.b] = (degree[e.b] || 0) + 1; });
+  }
+  rebuildEdges();
 
   function simulate(iterations) {
     for (let iter = 0; iter < iterations; iter++) {
@@ -803,6 +895,7 @@ function initGraph(c) {
       }
       edges.forEach(e => {
         const a = nodeById[e.a], b = nodeById[e.b];
+        if (!a || !b) return;
         let dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 0.01;
         const force = (d - 130) * 0.02;
@@ -822,36 +915,72 @@ function initGraph(c) {
   }
   simulate(240);
 
+  let hoverNode = null;
+  let connectFrom = null; // node currently being shift-dragged to form a manual link
+  let connectPos = null;  // live mouse pos while connecting
+
+  function nodeRadius(n) {
+    const active = n.id === workspace.noteId;
+    const deg = degree[n.id] || 0;
+    return (active ? 9 : 6.5) + Math.min(deg, 6) * 1.1;
+  }
+
   function draw() {
     ctx.clearRect(0, 0, w, h);
-    ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(4,4,6,0.32)';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.lineWidth = 1.2;
     edges.forEach(e => {
       const a = nodeById[e.a], b = nodeById[e.b];
-      ctx.strokeStyle = 'rgba(239,68,68,0.35)';
+      if (!a || !b) return;
+      const dim = hoverNode && hoverNode.id !== a.id && hoverNode.id !== b.id;
+      const bright = hoverNode && (hoverNode.id === a.id || hoverNode.id === b.id);
+      ctx.strokeStyle = bright ? 'rgba(255,255,255,0.65)' : dim ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.28)';
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
     });
-    nodes.forEach(n => {
-      const active = n.id === workspace.noteId;
+
+    if (connectFrom && connectPos) {
+      ctx.strokeStyle = 'rgba(251,191,36,0.8)';
+      ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.fillStyle = active ? 'rgba(248,113,113,0.95)' : 'rgba(220,38,38,0.85)';
-      ctx.shadowColor = 'rgba(239,68,68,0.9)';
-      ctx.shadowBlur = active ? 18 : 8;
-      ctx.arc(n.x, n.y, active ? 9 : 7, 0, Math.PI * 2);
+      ctx.moveTo(connectFrom.x, connectFrom.y);
+      ctx.lineTo(connectPos.x, connectPos.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    nodes.forEach(n => {
+      const note = c.notes.find(nt => nt.id === n.id);
+      const colors = TAG_COLORS[note ? primaryTag(note) : 'default'];
+      const active = n.id === workspace.noteId;
+      const isHover = hoverNode && hoverNode.id === n.id;
+      const dim = hoverNode && !isHover && hoverNode.id !== n.id &&
+        !edges.some(e => (e.a === hoverNode.id && e.b === n.id) || (e.b === hoverNode.id && e.a === n.id));
+      const r = nodeRadius(n);
+
+      ctx.globalAlpha = dim ? 0.35 : 1;
+      ctx.beginPath();
+      ctx.fillStyle = colors.base;
+      ctx.shadowColor = colors.glow;
+      ctx.shadowBlur = active || isHover ? 20 : 7;
+      ctx.arc(n.x, n.y, isHover ? r + 2 : r, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.fillStyle = active ? '#ffffff' : '#d1d5db';
-      ctx.font = '11px Poppins, sans-serif';
+      ctx.fillStyle = active || isHover ? '#ffffff' : '#c9ccd1';
+      ctx.font = active || isHover ? '600 11px Poppins, sans-serif' : '11px Poppins, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(n.label, n.x, n.y + 22);
+      ctx.fillText(n.label, n.x, n.y + r + 13);
+      ctx.globalAlpha = 1;
     });
   }
   draw();
 
   function nodeAt(x, y) {
-    return nodes.find(n => Math.hypot(n.x - x, n.y - y) < 13);
+    return nodes.find(n => Math.hypot(n.x - x, n.y - y) < nodeRadius(n) + 6);
   }
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
@@ -863,19 +992,62 @@ function initGraph(c) {
   canvas.addEventListener('mousedown', (e) => {
     const p = getPos(e);
     const n = nodeAt(p.x, p.y);
-    if (n) { dragging = n; dragMoved = false; }
+    if (!n) return;
+    if (e.shiftKey) {
+      connectFrom = n;
+      connectPos = p;
+      canvas.style.cursor = 'crosshair';
+    } else {
+      dragging = n; dragMoved = false;
+    }
   }, { signal });
 
   window.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
     const p = getPos(e);
-    dragging.x = Math.max(20, Math.min(w - 20, p.x));
-    dragging.y = Math.max(20, Math.min(h - 20, p.y));
-    dragMoved = true;
-    draw();
+
+    if (connectFrom) {
+      connectPos = p;
+      draw();
+      return;
+    }
+
+    if (dragging) {
+      dragging.x = Math.max(20, Math.min(w - 20, p.x));
+      dragging.y = Math.max(20, Math.min(h - 20, p.y));
+      dragMoved = true;
+      draw();
+      return;
+    }
+
+    const n = nodeAt(p.x, p.y);
+    if (n !== hoverNode) {
+      hoverNode = n;
+      canvas.style.cursor = n ? 'pointer' : 'grab';
+      draw();
+    }
   }, { signal });
 
-  window.addEventListener('mouseup', () => {
+  window.addEventListener('mouseup', (e) => {
+    if (connectFrom) {
+      const p = getPos(e);
+      const target = nodeAt(p.x, p.y);
+      if (target && target.id !== connectFrom.id) {
+        const sourceNote = c.notes.find(nt => nt.id === connectFrom.id);
+        const targetNote = c.notes.find(nt => nt.id === target.id);
+        if (sourceNote && targetNote &&
+            !parseLinks(sourceNote.content).some(l => l.toLowerCase() === targetNote.title.toLowerCase())) {
+          sourceNote.content = (sourceNote.content ? sourceNote.content + '\n\n' : '') + `[[${targetNote.title}]]`;
+          rebuildEdges();
+          simulate(60);
+        }
+      }
+      connectFrom = null;
+      connectPos = null;
+      canvas.style.cursor = 'grab';
+      draw();
+      return;
+    }
+
     if (dragging && !dragMoved) {
       workspace.noteId = dragging.id;
       workspace.view = 'note';
@@ -886,6 +1058,118 @@ function initGraph(c) {
   }, { signal });
 
   window.addEventListener('resize', () => { resize(); draw(); }, { signal });
+
+  /* ---- Graph search: one query fans out across EVERY live module we
+     have at once (Mail OSINT, Hudson Rock, Web Databases, Shodan, all
+     the Social platforms, everything) so nothing that could surface a
+     breach or a profile gets skipped by a narrow guess. Whatever comes
+     back gets merged into ONE new node — the query itself — linked back
+     to whichever note you last had open. One search, one clean node,
+     every source that had something to say. ---- */
+  const searchInput = document.getElementById('graphSearchInput');
+  const searchBtn = document.getElementById('graphSearchBtn');
+  const searchStatus = document.getElementById('graphSearchStatus');
+
+  function addFinding(note, originId) {
+    c.notes.push(note);
+    nodes.push({
+      id: note.id, label: note.title,
+      x: (nodeById[originId] ? nodeById[originId].x : w / 2) + (Math.random() - 0.5) * 60,
+      y: (nodeById[originId] ? nodeById[originId].y : h / 2) + (Math.random() - 0.5) * 60,
+      vx: 0, vy: 0,
+    });
+    nodeById = {};
+    nodes.forEach(n => { nodeById[n.id] = n; });
+    rebuildEdges();
+    simulate(80);
+    draw();
+  }
+
+  async function runGraphSearch() {
+    const query = searchInput.value.trim();
+    if (!query) { searchInput.focus(); return; }
+
+    // Every live module gets a shot, regardless of query shape — a bad
+    // fit (e.g. running Whois against a plain username) just fails fast
+    // and gets dropped below; this way nothing that could've found a
+    // breach or a profile gets skipped by an overly-clever guess.
+    const toolIds = Object.keys(window.LIVE_HANDLERS || {});
+    if (!toolIds.length) { searchStatus.textContent = 'No hay módulos en vivo configurados.'; return; }
+
+    searchBtn.disabled = true;
+    searchStatus.textContent = `Consultando los ${toolIds.length} módulos...`;
+
+    // Race each module against a 12s cap — some upstreams (OathNet, when
+    // it's down) hang far longer than that instead of failing fast, and
+    // one slow source shouldn't block the whole pivot from showing what
+    // the fast ones already found.
+    const withTimeout = (p) => Promise.race([
+      p,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000)),
+    ]);
+    const settled = await Promise.allSettled(toolIds.map(id => withTimeout(fetchGraphToolItems(id, query))));
+
+    const results = [];
+    settled.forEach((res) => {
+      if (res.status === 'fulfilled') results.push(...res.value);
+    });
+
+    if (!results.length) {
+      searchStatus.textContent = `Sin datos para "${query}" en los ${toolIds.length} módulos consultados.`;
+      searchBtn.disabled = false;
+      return;
+    }
+
+    // The query itself becomes ONE hub node (or reuses the existing note
+    // of that name). Every module that found something gets its OWN
+    // satellite node — its own circle — wired to the hub, instead of one
+    // blob of merged text. Same idea as an Obsidian note with many
+    // outgoing links: one origin, many spokes, all draggable/orderable
+    // independently.
+    const origin = c.notes.find(n => n.id === workspace.noteId) || c.notes[0] || null;
+    let hub = findNoteByTitle(c, query);
+    const hubIsNew = !hub;
+    if (!hub) {
+      hub = { id: 'n-' + Date.now(), title: query, tags: ['found', TOOL_TAG[primaryToolForQuery(query)] || 'default'], content: `Punto de partida: **${query}**` };
+    }
+
+    if (origin && origin.id !== hub.id &&
+        !parseLinks(origin.content).some(l => l.toLowerCase() === hub.title.toLowerCase())) {
+      origin.content = (origin.content ? origin.content + '\n\n' : '') + `[[${hub.title}]]`;
+    }
+    if (hubIsNew) addFinding(hub, origin ? origin.id : null);
+
+    const stamp = new Date().toLocaleTimeString();
+    results.forEach((r, idx) => {
+      const satTitle = `${query} — ${r.toolLabel}`;
+      let sat = findNoteByTitle(c, satTitle);
+      const satIsNew = !sat;
+      if (!sat) {
+        sat = { id: `n-${Date.now()}-${idx}`, title: satTitle, tags: ['found', TOOL_TAG[r.toolId] || 'default'], content: '' };
+      }
+      sat.content = (sat.content ? sat.content + '\n\n---\n\n' : '') + `**${r.toolLabel}** — ${stamp}\n${r.plain}`;
+      if (!parseLinks(sat.content).some(l => l.toLowerCase() === hub.title.toLowerCase())) {
+        sat.content += `\n\nRelacionado con [[${hub.title}]].`;
+      }
+      if (!parseLinks(hub.content).some(l => l.toLowerCase() === sat.title.toLowerCase())) {
+        hub.content = (hub.content ? hub.content + '\n\n' : '') + `[[${sat.title}]]`;
+      }
+      if (satIsNew) addFinding(sat, hub.id);
+    });
+
+    rebuildEdges();
+    simulate(80);
+    draw();
+
+    searchStatus.textContent = `"${query}": ${results.length} círculo${results.length > 1 ? 's' : ''} nuevo${results.length > 1 ? 's' : ''} conectado${results.length > 1 ? 's' : ''} al centro.`;
+    searchInput.value = '';
+    searchBtn.disabled = false;
+  }
+
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener('click', runGraphSearch, { signal });
+    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGraphSearch(); }, { signal });
+  }
 }
 
 function renderActivity() {

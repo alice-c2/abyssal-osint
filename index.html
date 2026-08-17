@@ -88,14 +88,11 @@
       One search across 30+ data sources. Person lookups, breach databases, network recon, and social intelligence: every thread of an investigation in one place.
     </p>
 
-    <div class="mt-9 max-w-xl mx-auto">
-      <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] pl-5 pr-2 py-2.5">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-500 shrink-0"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" placeholder="Search names, emails, IPs..." class="flex-1 bg-transparent outline-none text-sm placeholder-gray-500 py-1.5">
-        <button class="w-9 h-9 shrink-0 rounded-full bg-primary-600 hover:bg-primary-500 flex items-center justify-center transition-colors">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </button>
-      </div>
+    <div class="mt-9 flex items-center justify-center">
+      <a href="dashboard.html#cases" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-500 font-medium text-sm transition-colors">
+        Start an investigation
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </div>
 
     <div class="mt-6 flex items-center justify-center gap-3 text-[11px] tracking-wider text-gray-500 uppercase">
@@ -216,7 +213,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium">LeakCheck</p>
+                <p class="text-sm font-medium">Source A</p>
                 <p class="text-[11px] text-gray-500">2 breaches · 2 sources</p>
               </div>
             </div>
@@ -243,7 +240,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
             </div>
             <div>
-              <p class="text-sm font-medium">Snusbase</p>
+              <p class="text-sm font-medium">Source B</p>
               <p class="text-[11px] text-gray-500">1 breach · 1 source</p>
             </div>
           </div>
@@ -515,11 +512,6 @@
   </div>
 
   <div class="max-w-4xl mx-auto px-6 mt-10 flex flex-wrap justify-center gap-3 reveal">
-    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>LeakCheck</span>
-    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Snusbase</span>
-    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>IntelX</span>
-    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>SEON</span>
-    <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>CloudSINT</span>
     <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>Shodan</span>
     <br class="w-full">
     <span class="pill rounded-full px-4 py-2 text-sm text-gray-300 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-primary-400"></span>VirusTotal</span>
@@ -688,11 +680,11 @@ console.<span class="fn">log</span>(result.data);
       <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-3">Cost per tool</p>
       <div class="scroll-x flex gap-3 overflow-x-auto pb-4 mb-6">
         <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
-          <p class="text-[11px] text-gray-400 mb-2">IntelX Portal</p>
+          <p class="text-[11px] text-gray-400 mb-2">File Archive Search</p>
           <p class="text-sm font-semibold text-primary-300">10 <span class="text-[10px] text-gray-500">cr</span></p>
         </div>
         <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
-          <p class="text-[11px] text-gray-400 mb-2">CloudSINT</p>
+          <p class="text-[11px] text-gray-400 mb-2">Cloud OSINT</p>
           <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
         </div>
         <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
@@ -700,7 +692,7 @@ console.<span class="fn">log</span>(result.data);
           <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
         </div>
         <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
-          <p class="text-[11px] text-gray-400 mb-2">Leakcheck</p>
+          <p class="text-[11px] text-gray-400 mb-2">Breach Search</p>
           <p class="text-sm font-semibold text-primary-300">1 <span class="text-[10px] text-gray-500">cr</span></p>
         </div>
         <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">

@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.claude/
+.gstack/
+.g/
+.git/
+backend/truecaller_cli/node_modules/

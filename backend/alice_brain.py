@@ -49,8 +49,6 @@ TOOLS = [
      "desc": "revisa datos y actividad asociada a una cuenta de Gmail."},
     {"name": "Hudson Rock", "category": "Intel", "keywords": ["hudson rock", "infostealer", "malware"],
      "desc": "busca credenciales expuestas por malware infostealer."},
-    {"name": "SEON", "category": "Intel", "keywords": ["seon", "fraude"],
-     "desc": "evalua riesgo de fraude de un email, telefono o IP."},
     {"name": "Phone Search", "category": "US Search", "keywords": ["phone search", "telefono", "numero"],
      "desc": "identifica operador, dueno y ubicacion de un numero de telefono (EE.UU.)."},
     {"name": "Address Search", "category": "US Search", "keywords": ["address search", "direccion"],

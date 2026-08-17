@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 .claude/settings.local.json
+.g/settings.local.json
+.gstack/
+.vercel
+node_modules/
