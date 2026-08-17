@@ -187,23 +187,10 @@ code .fn { color: #fda4af; }
 #sidebar.collapsed .nav-cat,
 #sidebar.collapsed #sideSearch-wrap,
 #sidebar.collapsed .user-meta,
-#sidebar.collapsed .credits-block,
 #sidebar.collapsed .logo-text {
   display: none;
 }
 #sidebar.collapsed .nav-item { justify-content: center; }
-
-.credit-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  overflow: hidden;
-}
-.credit-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #dc2626, #f43f5e);
-  border-radius: 999px;
-}
 
 .tool-empty-icon {
   width: 56px; height: 56px;
