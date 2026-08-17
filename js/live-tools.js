@@ -18,7 +18,26 @@ function fmtDate(iso) {
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* Every href="${...}"/src="${...}" below embeds a URL from a third-party
+   API response — some of these tools exist specifically to inspect
+   adversary-supplied artifacts (link resolver, Discord connected
+   accounts, breach records), so that URL has to be treated as hostile
+   input. Rejects anything that isn't http(s) (blocks javascript:, data:,
+   vbscript:, etc.) and HTML-attribute-escapes what's left. */
+function safeUrl(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(String(url), window.location.origin);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+    return escapeHtml(u.href);
+  } catch (e) {
+    return '';
+  }
 }
 
 function stripUrl(query) {
@@ -76,16 +95,16 @@ async function ipInfoRun(query) {
       <div class="flex items-center gap-3 mb-5">
         <span class="text-3xl">${d.flag?.emoji || ''}</span>
         <div>
-          <p class="text-lg font-semibold font-mono">${d.ip}</p>
-          <p class="text-sm text-gray-400">${[d.city, d.region, d.country].filter(Boolean).join(', ')}</p>
+          <p class="text-lg font-semibold font-mono">${escapeHtml(d.ip)}</p>
+          <p class="text-sm text-gray-400">${[d.city, d.region, d.country].filter(Boolean).map(escapeHtml).join(', ')}</p>
         </div>
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">ISP</p><p>${escapeHtml(d.connection?.isp || '—')}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Organización</p><p>${escapeHtml(d.connection?.org || '—')}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">ASN</p><p>AS${d.connection?.asn ?? '—'}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Tipo</p><p>${d.type || '—'}</p></div>
-        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Zona horaria</p><p>${d.timezone?.id || '—'}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Tipo</p><p>${escapeHtml(d.type || '—')}</p></div>
+        <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Zona horaria</p><p>${escapeHtml(d.timezone?.id || '—')}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Coordenadas</p><p>${d.latitude?.toFixed(3)}, ${d.longitude?.toFixed(3)}</p></div>
       </div>
       ${d.ipapi_co ? `
@@ -109,7 +128,7 @@ async function whoisRun(query) {
 
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="text-lg font-semibold mb-3 font-mono">${d.ldhName || domain}</p>
+      <p class="text-lg font-semibold mb-3 font-mono">${escapeHtml(d.ldhName || domain)}</p>
       <div class="flex flex-wrap gap-2 mb-5">
         ${(d.status || []).map(s => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-400">${escapeHtml(s)}</span>`).join('') || '<span class="text-sm text-gray-600">Sin estado reportado</span>'}
       </div>
@@ -161,9 +180,9 @@ async function waybackRun(query) {
         <span class="w-2.5 h-2.5 rounded-full ${snap.available ? 'bg-emerald-400' : 'bg-gray-600'}"></span>
         <p class="font-semibold">${snap.available ? 'Snapshot disponible' : 'No disponible'}</p>
       </div>
-      <p class="text-sm text-gray-400 mb-1">Fecha de captura: <span class="text-gray-200 font-mono">${readable}</span></p>
-      <p class="text-sm text-gray-400 mb-5">Status HTTP: <span class="text-gray-200 font-mono">${snap.status || '—'}</span></p>
-      <a href="${snap.url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-sm font-medium transition-colors">Ver snapshot ↗</a>
+      <p class="text-sm text-gray-400 mb-1">Fecha de captura: <span class="text-gray-200 font-mono">${escapeHtml(readable)}</span></p>
+      <p class="text-sm text-gray-400 mb-5">Status HTTP: <span class="text-gray-200 font-mono">${escapeHtml(String(snap.status || '—'))}</span></p>
+      <a href="${safeUrl(snap.url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-sm font-medium transition-colors">Ver snapshot ↗</a>
     </div>`;
 }
 
@@ -194,7 +213,7 @@ async function githubRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <div class="flex items-center gap-4 mb-5">
-        <img src="${d.avatar_url}" class="w-16 h-16 rounded-xl border border-white/10" alt="">
+        <img src="${safeUrl(d.avatar_url)}" class="w-16 h-16 rounded-xl border border-white/10" alt="">
         <div>
           <p class="font-semibold text-lg">${escapeHtml(d.name || d.login)}</p>
           <p class="text-sm text-gray-500">@${escapeHtml(d.login)}</p>
@@ -215,7 +234,7 @@ async function githubRun(query) {
         ${d.blog ? `<span>🔗 ${escapeHtml(d.blog)}</span>` : ''}
       </div>
       ${!d.email ? '<p class="text-[11px] text-gray-600 mb-4">Este usuario no puso su email como público en el perfil.</p>' : ''}
-      <a href="${d.html_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
+      <a href="${safeUrl(d.html_url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
     </div>
     ${emailFinderCard}`;
 }
@@ -228,7 +247,7 @@ async function robloxRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <div class="flex items-center gap-4 mb-5">
-        ${d.avatarUrl ? `<img src="${d.avatarUrl}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
+        ${d.avatarUrl ? `<img src="${safeUrl(d.avatarUrl)}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
           <p class="font-semibold text-lg flex items-center gap-1.5">${escapeHtml(d.displayName || d.name)} ${d.hasVerifiedBadge ? '✅' : ''}</p>
           <p class="text-sm text-gray-500">@${escapeHtml(d.name)} · ID ${d.id}</p>
@@ -242,7 +261,7 @@ async function robloxRun(query) {
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuenta creada</p><p class="font-semibold">${fmtDate(d.created)}</p></div>
       </div>
       ${d.isBanned ? '<p class="text-xs text-red-400 mb-2">⚠️ Esta cuenta está baneada.</p>' : ''}
-      <a href="https://www.roblox.com/users/${d.id}/profile" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
+      <a href="https://www.roblox.com/users/${encodeURIComponent(String(d.id))}/profile" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5 text-sm transition-colors">Ver perfil ↗</a>
     </div>`;
 }
 
@@ -256,7 +275,7 @@ async function tiktokRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <div class="flex items-center gap-4 mb-5">
-        ${u.avatarLarger ? `<img src="${u.avatarLarger}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
+        ${u.avatarLarger ? `<img src="${safeUrl(u.avatarLarger)}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
           <p class="font-semibold text-lg flex items-center gap-1.5">${escapeHtml(u.nickname || u.uniqueId)} ${u.verified ? '✅' : ''}</p>
           <p class="text-sm text-gray-500">@${escapeHtml(u.uniqueId)}</p>
@@ -370,8 +389,8 @@ async function appStoreRun(query) {
   return `
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       ${d.results.map(app => `
-        <a href="${app.trackViewUrl}" target="_blank" rel="noopener" class="card p-4 flex gap-3 items-start">
-          <img src="${app.artworkUrl100}" class="w-12 h-12 rounded-xl shrink-0" alt="">
+        <a href="${safeUrl(app.trackViewUrl)}" target="_blank" rel="noopener" class="card p-4 flex gap-3 items-start">
+          <img src="${safeUrl(app.artworkUrl100)}" class="w-12 h-12 rounded-xl shrink-0" alt="">
           <div class="min-w-0">
             <p class="font-medium text-sm truncate">${escapeHtml(app.trackName)}</p>
             <p class="text-xs text-gray-500 truncate mb-1">${escapeHtml(app.artistName)}</p>
@@ -397,7 +416,7 @@ async function cryptoRun(query) {
 
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
-      <p class="font-mono text-sm text-gray-300 mb-5 break-all">${d.address}</p>
+      <p class="font-mono text-sm text-gray-300 mb-5 break-all">${escapeHtml(d.address)}</p>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-6">
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Balance</p><p class="font-semibold text-primary-300">${btc(d.final_balance)} BTC</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Recibido</p><p class="font-semibold">${btc(d.total_received)} BTC</p></div>
@@ -408,7 +427,7 @@ async function cryptoRun(query) {
       <div class="space-y-1.5">
         ${(d.txs || []).slice(0, 6).map(tx => `
           <div class="flex items-center justify-between text-xs font-mono bg-white/[0.02] border border-white/10 rounded-lg px-3 py-2">
-            <span class="truncate text-gray-400">${tx.hash}</span>
+            <span class="truncate text-gray-400">${escapeHtml(tx.hash)}</span>
             <span class="text-gray-500 ml-3 shrink-0">${new Date(tx.time * 1000).toLocaleDateString()}</span>
           </div>`).join('') || '<p class="text-sm text-gray-600">Sin transacciones.</p>'}
       </div>
@@ -458,8 +477,8 @@ async function shodanRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <div class="flex items-center gap-3 mb-5">
-        <p class="font-mono text-lg font-semibold">${d.ip_str}</p>
-        <span class="text-sm text-gray-500">${[d.city, d.country_name].filter(Boolean).join(', ')}</span>
+        <p class="font-mono text-lg font-semibold">${escapeHtml(d.ip_str)}</p>
+        <span class="text-sm text-gray-500">${[d.city, d.country_name].filter(Boolean).map(escapeHtml).join(', ')}</span>
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-6">
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Organización</p><p>${escapeHtml(d.org || '—')}</p></div>
@@ -478,7 +497,7 @@ async function shodanRun(query) {
         ${(d.data || []).slice(0, 6).map(s => `
           <div class="border border-white/10 rounded-lg px-3 py-2.5">
             <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-mono text-primary-300">${s.port}/${s.transport}</span>
+              <span class="text-xs font-mono text-primary-300">${s.port}/${escapeHtml(s.transport)}</span>
               ${s.product ? `<span class="text-xs text-gray-400">${escapeHtml(s.product)} ${escapeHtml(s.version || '')}</span>` : ''}
             </div>
             <p class="text-[11px] font-mono text-gray-600 truncate">${escapeHtml((s.data || '').slice(0, 140))}</p>
@@ -583,13 +602,13 @@ function embedFieldGrid(obj, labels = {}) {
     if (IMAGE_KEY.test(key) && isUrl) {
       return `<div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
           <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">${escapeHtml(label)}</p>
-          <img src="${value}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="">
+          <img src="${safeUrl(value)}" class="w-10 h-10 rounded-lg border border-white/10 object-cover" alt="">
         </div>`;
     }
     return `<div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
         <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${escapeHtml(label)}</p>
         ${isUrl
-          ? `<a href="${value}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">Abrir ↗</a>`
+          ? `<a href="${safeUrl(value)}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">Abrir ↗</a>`
           : `<p class="text-sm font-mono text-gray-200 break-all">${escapeHtml(String(value))}</p>`}
       </div>`;
   }).filter(Boolean);
@@ -697,7 +716,7 @@ function linkedAccountCard(service, subtitle, statusLabel, statusColor, fields) 
           <div class="bg-black/30 border border-white/10 rounded-lg px-3 py-2">
             <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${escapeHtml(label)}</p>
             ${isImage
-              ? (value ? `<img src="${value}" class="w-9 h-9 rounded-full border border-white/10" alt="">` : `<div class="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center">${icon('user', 'width="16" height="16" class="text-primary-300"')}</div>`)
+              ? (value ? `<img src="${safeUrl(value)}" class="w-9 h-9 rounded-full border border-white/10" alt="">` : `<div class="w-9 h-9 rounded-full bg-primary-500/20 flex items-center justify-center">${icon('user', 'width="16" height="16" class="text-primary-300"')}</div>`)
               : `<p class="text-sm font-mono text-gray-200 break-all">${value ? escapeHtml(String(value)) : '—'}</p>`}
           </div>`).join('')}
       </div>
@@ -786,7 +805,7 @@ async function discordRun(query) {
     ? `
       <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2 mt-5">Discord API (oficial)</p>
       <div class="flex flex-wrap items-center gap-2 mb-1">
-        ${api.accent_color ? `<span class="w-5 h-5 rounded-full border border-white/20 shrink-0" style="background:${api.accent_color}" title="${api.accent_color}"></span>` : ''}
+        ${api.accent_color && /^#[0-9a-f]{6}$/i.test(api.accent_color) ? `<span class="w-5 h-5 rounded-full border border-white/20 shrink-0" style="background:${api.accent_color}" title="${api.accent_color}"></span>` : ''}
         ${api.is_bot ? `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">Bot</span>` : ''}
         ${api.is_system ? `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">Sistema</span>` : ''}
         ${(api.public_flags_badges || []).map(b => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-gray-300">${escapeHtml(b)}</span>`).join('')}
@@ -808,7 +827,7 @@ async function discordRun(query) {
           <div class="animate-pop-in bg-black/30 border border-white/10 rounded-lg px-3 py-2.5" style="animation-delay:${delay}s">
             <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${escapeHtml(platform)}</p>
             ${acc.link
-              ? `<a href="${acc.link}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">${escapeHtml(acc.name || acc.link)}</a>`
+              ? `<a href="${safeUrl(acc.link)}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 hover:underline break-all">${escapeHtml(acc.name || acc.link)}</a>`
               : `<p class="text-sm font-mono text-gray-200 break-all">${escapeHtml(acc.name || acc.id || '—')}</p>`}
           </div>`;
       });
@@ -822,9 +841,9 @@ async function discordRun(query) {
 
   return `
     ${oathnetCardOpen()}
-      ${u.banner_url ? `<img src="${u.banner_url}" class="w-full h-28 sm:h-36 object-cover rounded-xl border border-white/10 mb-[-2.5rem]" alt="">` : ''}
+      ${u.banner_url ? `<img src="${safeUrl(u.banner_url)}" class="w-full h-28 sm:h-36 object-cover rounded-xl border border-white/10 mb-[-2.5rem]" alt="">` : ''}
       <div class="flex items-end gap-4 mb-5 ${u.banner_url ? 'pl-2' : ''}">
-        ${u.avatar_url ? `<img src="${u.avatar_url}" class="w-20 h-20 rounded-2xl border-4 border-black/60 shadow-lg" alt="">` : ''}
+        ${u.avatar_url ? `<img src="${safeUrl(u.avatar_url)}" class="w-20 h-20 rounded-2xl border-4 border-black/60 shadow-lg" alt="">` : ''}
         <div class="pb-1">
           <p class="font-semibold text-lg">${escapeHtml(u.global_name || u.username)}</p>
           <p class="text-sm text-gray-500 font-mono">@${escapeHtml(u.username)}</p>
@@ -886,7 +905,7 @@ async function linkResolverRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-2">URL final</p>
-      <a href="${d.final_url}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 break-all hover:underline">${escapeHtml(d.final_url)}</a>
+      <a href="${safeUrl(d.final_url)}" target="_blank" rel="noopener" class="text-sm font-mono text-primary-300 break-all hover:underline">${escapeHtml(d.final_url)}</a>
 
       ${pm
         ? `<div class="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
@@ -964,7 +983,7 @@ async function playstationRun(query) {
   return `
     <div class="rounded-2xl border border-white/10 bg-black/40 p-6">
       <div class="flex items-center gap-4 mb-5">
-        ${avatar ? `<img src="${avatar}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
+        ${avatar ? `<img src="${safeUrl(avatar)}" class="w-16 h-16 rounded-xl border border-white/10" alt="">` : ''}
         <div>
           <p class="font-semibold text-lg flex items-center gap-1.5">${escapeHtml(p.onlineId)} ${p.isOfficiallyVerified ? '✅' : ''}</p>
           <p class="text-sm text-gray-500">Nivel de trofeos: ${p.trophySummary?.level ?? '—'} ${p.plus ? '· PS Plus' : ''}</p>
@@ -1006,7 +1025,7 @@ async function imageGeolocationRun(file) {
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Radio de búsqueda</p><p class="font-semibold">${d.radius_km != null ? `${d.radius_km} km` : '—'}</p></div>
         <div><p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Fuente</p><p class="font-semibold">Alice${d.source === 'exif' ? ' · EXIF' : ''}</p></div>
       </div>
-      ${mapsUrl ? `<a href="${mapsUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300">Ver en el mapa →</a>` : ''}
+      ${mapsUrl ? `<a href="${safeUrl(mapsUrl)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-primary-400 hover:text-primary-300">Ver en el mapa →</a>` : ''}
       ${rawJsonBlock(d, 'image-geolocation.json')}
     </div>`;
 }

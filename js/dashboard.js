@@ -603,7 +603,7 @@ function renderCases() {
       ${CASES.map(c => `
         <button data-case="${c.id}" class="case-card card p-5 text-left">
           <div class="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300 mb-4">${icon('folder')}</div>
-          <p class="font-semibold mb-1">${c.name}</p>
+          <p class="font-semibold mb-1">${escapeHtml(c.name)}</p>
           <p class="text-xs text-gray-500">${c.notes.length} notes · ${c.updated}</p>
         </button>
       `).join('')}
@@ -736,7 +736,7 @@ function renderWorkspace() {
       <div class="flex items-center gap-3">
         <button id="wsBack" class="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/5">${icon('chevronLeft')}</button>
         <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">${icon('folder', 'width="15" height="15"')}</div>
-        <p class="font-semibold">${c.name}</p>
+        <p class="font-semibold">${escapeHtml(c.name)}</p>
       </div>
       <div class="flex items-center gap-1 pill rounded-lg p-1">
         <button id="wsTabNote" class="px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${workspace.view === 'note' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}">${icon('fileText', 'width="13" height="13"')} Notes</button>
@@ -757,7 +757,7 @@ function renderWorkspace() {
           ${c.notes.map(n => `
             <div data-note="${n.id}" class="note-item flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer mb-0.5 ${note && n.id === note.id ? 'bg-primary-600/20 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}">
               ${icon('fileText', 'width="13" height="13" class="shrink-0 opacity-70"')}
-              <span class="truncate">${n.title || 'Untitled'}</span>
+              <span class="truncate">${escapeHtml(n.title || 'Untitled')}</span>
             </div>
           `).join('')}
         </div>
@@ -781,8 +781,8 @@ function renderNotePane(c, note) {
   <div class="max-w-2xl mx-auto px-8 py-8">
     <div class="flex items-start justify-between gap-4 mb-4">
       ${workspace.editing
-        ? `<input id="wsTitleInput" value="${note.title.replace(/"/g, '&quot;')}" class="text-2xl font-semibold bg-transparent outline-none border-b border-white/10 focus:border-primary-400/50 flex-1 pb-1">`
-        : `<h2 class="text-2xl font-semibold">${note.title || 'Untitled'}</h2>`}
+        ? `<input id="wsTitleInput" value="${escapeHtml(note.title)}" class="text-2xl font-semibold bg-transparent outline-none border-b border-white/10 focus:border-primary-400/50 flex-1 pb-1">`
+        : `<h2 class="text-2xl font-semibold">${escapeHtml(note.title || 'Untitled')}</h2>`}
       <button id="wsEditToggle" class="shrink-0 p-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
         ${icon(workspace.editing ? 'fileText' : 'pencil', 'width="14" height="14"')}
       </button>
@@ -790,18 +790,18 @@ function renderNotePane(c, note) {
 
     ${note.tags && note.tags.length ? `
       <div class="flex flex-wrap gap-2 mb-5">
-        ${note.tags.map(t => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-primary-300 flex items-center gap-1">${icon('tag', 'width="10" height="10"')}${t}</span>`).join('')}
+        ${note.tags.map(t => `<span class="pill rounded-full px-2.5 py-1 text-[11px] text-primary-300 flex items-center gap-1">${icon('tag', 'width="10" height="10"')}${escapeHtml(t)}</span>`).join('')}
       </div>` : ''}
 
     ${workspace.editing
-      ? `<textarea id="wsContentArea" rows="12" class="w-full bg-white/[0.02] border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-primary-400/40 resize-none" placeholder="Write notes here. Link other notes with [[Note Title]]...">${note.content}</textarea>`
+      ? `<textarea id="wsContentArea" rows="12" class="w-full bg-white/[0.02] border border-white/10 rounded-xl p-4 text-sm font-mono leading-relaxed outline-none focus:border-primary-400/40 resize-none" placeholder="Write notes here. Link other notes with [[Note Title]]...">${escapeHtml(note.content)}</textarea>`
       : `<div class="text-sm leading-relaxed text-gray-300 whitespace-pre-wrap">${renderContentHtml(note.content) || '<span class="text-gray-600">Empty note — click the pencil to start writing.</span>'}</div>`}
 
     ${links.length ? `
       <div class="mt-10 pt-5 border-t border-white/10">
         <p class="text-xs tracking-wider uppercase text-gray-500 mb-3 flex items-center gap-1.5">${icon('link2', 'width="12" height="12"')} Linked mentions (${links.length})</p>
         <div class="space-y-2">
-          ${links.map(l => `<div data-note="${l.id}" class="note-item card px-3 py-2 text-sm cursor-pointer">${l.title}</div>`).join('')}
+          ${links.map(l => `<div data-note="${l.id}" class="note-item card px-3 py-2 text-sm cursor-pointer">${escapeHtml(l.title)}</div>`).join('')}
         </div>
       </div>` : ''}
   </div>`;

@@ -30,6 +30,7 @@ Then open http://localhost:8000/dashboard.html
 import asyncio
 import hashlib
 import io
+import ipaddress
 import json
 import os
 import re
@@ -229,18 +230,55 @@ async def roblox_user(username: str):
 # URL Encode/Decode into one "everything about this URL" tool instead of
 # three separate cards, since a resolved link is exactly when you'd also
 # want to know if it's decoded/phishing.
+#
+# SSRF guard: this endpoint fetches a URL the caller fully controls, so
+# every hop (the initial URL AND every redirect target) is resolved and
+# checked against private/loopback/link-local/reserved ranges before we
+# connect — otherwise this server becomes an open proxy into Vercel's
+# internal network. follow_redirects=True doesn't give a per-hop
+# validation point, so redirects are followed manually instead.
+_MAX_REDIRECTS = 5
+
+
+async def _assert_public_host(host: str) -> None:
+    if not host:
+        raise HTTPException(400, "URL inválida.")
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(host, None)
+    except OSError as exc:
+        raise HTTPException(502, f"No se pudo resolver el host: {host}") from exc
+    for info in infos:
+        addr = ipaddress.ip_address(info[4][0])
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved or addr.is_multicast or addr.is_unspecified:
+            raise HTTPException(400, "No se permite resolver URLs que apunten a redes internas/privadas.")
+
+
 @app.get("/api/link-resolver")
 async def link_resolver(url: str = Query(...)):
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=True) as client:
-        try:
-            r = await client.get(url)
-        except httpx.RequestError as exc:
-            raise HTTPException(502, f"No se pudo resolver el link: {exc}") from exc
+    current = httpx.URL(url)
+    if current.scheme not in ("http", "https"):
+        raise HTTPException(400, "Solo se admiten URLs http:// o https://.")
 
-    chain = [{"url": str(h.url), "status": h.status_code} for h in r.history]
-    chain.append({"url": str(r.url), "status": r.status_code})
-    final_url = str(r.url)
-    final_domain = httpx.URL(final_url).host
+    chain = []
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT, follow_redirects=False) as client:
+        for _ in range(_MAX_REDIRECTS + 1):
+            await _assert_public_host(current.host)
+            try:
+                r = await client.get(current)
+            except httpx.RequestError as exc:
+                raise HTTPException(502, f"No se pudo resolver el link: {exc}") from exc
+            chain.append({"url": str(current), "status": r.status_code})
+            if r.is_redirect and (location := r.headers.get("location")):
+                current = current.join(location)
+                if current.scheme not in ("http", "https"):
+                    raise HTTPException(400, "Redirección a un esquema no permitido.")
+                continue
+            break
+        else:
+            raise HTTPException(502, "Demasiadas redirecciones.")
+
+    final_url = str(current)
+    final_domain = current.host
 
     phishing_match = None
     try:
