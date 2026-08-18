@@ -1288,30 +1288,42 @@ async def _run_investigation(plan: dict, nickname: str) -> str:
 async def alice_chat(payload: ChatRequest):
     nickname = payload.nickname or "investigador"
     history = payload.history or []
-    plan = alice_brain.plan_investigation(payload.message)
-    # Resolved against history too, so a short follow-up with no danger
-    # keyword of its own ("por Instagram") still counts if the topic was
-    # opened a turn or two ago — see resolve_danger_categories().
-    danger_categories = alice_brain.resolve_danger_categories(payload.message, history)
 
-    safety_text, safety_full = (None, False)
-    if danger_categories:
-        safety_text, safety_full = alice_brain.safety_guidance(nickname, payload.message, danger_categories, history)
+    # Checked before anything else — tools, investigation, even the
+    # extortion/acoso flow all wait. Someone signaling real distress
+    # getting a tool menu (or "no entendi eso") back is the worst possible
+    # failure mode for a safety-focused assistant.
+    distress = alice_brain.detect_distress(payload.message)
+    plan = None
+    safety_full = False
 
-    if plan:
-        # A concrete indicator (alias, email, IP...) was given alongside a
-        # danger keyword — e.g. "el alias del extorsionador es X". Do both:
-        # actually run the passive lookup the user asked for (that's step 1
-        # of the safety advice itself — preservar evidencia) AND still show
-        # the safety guidance, instead of the safety text silently
-        # swallowing the investigation.
-        reply = await _run_investigation(plan, nickname)
-        if safety_text:
-            reply += "\n\n---\n\n" + safety_text
-    elif safety_text:
-        reply = safety_text
+    if distress:
+        reply = alice_brain.distress_response(nickname, distress, payload.message)
     else:
-        reply = alice_brain.respond(payload.message, nickname)
+        plan = alice_brain.plan_investigation(payload.message)
+        # Resolved against history too, so a short follow-up with no danger
+        # keyword of its own ("por Instagram") still counts if the topic was
+        # opened a turn or two ago — see resolve_danger_categories().
+        danger_categories = alice_brain.resolve_danger_categories(payload.message, history)
+
+        safety_text = None
+        if danger_categories:
+            safety_text, safety_full = alice_brain.safety_guidance(nickname, payload.message, danger_categories, history)
+
+        if plan:
+            # A concrete indicator (alias, email, IP...) was given alongside a
+            # danger keyword — e.g. "el alias del extorsionador es X". Do both:
+            # actually run the passive lookup the user asked for (that's step 1
+            # of the safety advice itself — preservar evidencia) AND still show
+            # the safety guidance, instead of the safety text silently
+            # swallowing the investigation.
+            reply = await _run_investigation(plan, nickname)
+            if safety_text:
+                reply += "\n\n---\n\n" + safety_text
+        elif safety_text:
+            reply = safety_text
+        else:
+            reply = alice_brain.respond(payload.message, nickname)
 
     async def stream():
         words = reply.split(" ")

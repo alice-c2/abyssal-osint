@@ -128,8 +128,8 @@ CATEGORY_KEYWORDS = {
 # --------------------------------------------------------------------------
 
 DANGER_CATEGORIES = {
-    "extorsión o chantaje": ["extorsion", "chantaje"],
-    "acoso o stalking": ["acosa", "stalker"],
+    "extorsión o chantaje": ["extorsion", "chantaje", "sexcam", "sextorsion"],
+    "acoso o stalking": ["acosa", "stalker", "insulta", "insultos"],
     "una amenaza": ["amenaza"],
     "abuso o explotación sexual": ["pederast", "pedofil", "abuso sexual", "abusa", "grooming", "pornografia infantil", "explotacion sexual", "explotacion infantil"],
     "secuestro o trata de personas": ["secuestr", "trata de personas", "trafico de personas"],
@@ -219,6 +219,68 @@ def _detect_country(text: str) -> str | None:
         if country in text:
             return country
     return None
+
+
+# --------------------------------------------------------------------------
+# Emotional distress / possible self-harm risk — checked BEFORE anything
+# else (tools, investigation, even the extortion/acoso flow), because
+# someone saying "me siento mal" or worse getting back a tool menu (or
+# "no entendi eso") is the single worst failure mode this assistant can
+# have. Phrase-based on purpose: broad enough to catch real distress,
+# narrow enough not to fire on unrelated complaints ("me siento mal por
+# no haber ido" would need the literal phrase, which is intentional —
+# false negatives here are safer than an assistant that starts probing
+# unrelated bad moods as a crisis).
+# --------------------------------------------------------------------------
+
+CRISIS_LINES = {
+    "argentina": "el 135 (CABA/GBA) o el 0800-345-1435, Centro de Asistencia al Suicida",
+    "mexico": "la Línea de la Vida, 800 911 2000",
+    "espana": "el 024 (línea de atención a la conducta suicida) o el Teléfono de la Esperanza, 717 003 717",
+    "colombia": "la Línea 106",
+    "chile": "Salud Responde, 600 360 7777",
+    "peru": "la Línea 113, opción 5 (salud mental)",
+    "estados unidos": "el 988 (Suicide & Crisis Lifeline)",
+    "ecuador": "el 171",
+    "uruguay": "el 0800 0767",
+    "republica dominicana": "el *462 (*GOB)",
+    "venezuela": "la línea 0212-761-2411 (INSAFAP)",
+}
+
+_DISTRESS_WORDS = ["me siento mal", "estoy mal", "estoy muy mal", "no puedo mas", "no aguanto mas", "no doy mas", "me siento fatal", "no se que hacer con mi vida", "estoy destruido", "estoy destruida"]
+_SELFHARM_WORDS = ["quiero morir", "quiero morirme", "no quiero vivir", "quiero desaparecer", "quiero hacerme dano", "quiero lastimarme", "me quiero matar", "quiero matarme", "no vale la pena vivir", "no quiero seguir viviendo", "no quiero seguir aqui"]
+
+
+def detect_distress(message: str) -> str | None:
+    text = _norm(message)
+    if _contains_any(text, _SELFHARM_WORDS):
+        return "selfharm"
+    if _contains_any(text, _DISTRESS_WORDS):
+        return "mild"
+    return None
+
+
+def distress_response(nickname: str, level: str, message: str) -> str:
+    # Deliberately plain conversational text, not the [RESUMEN]/[HECHOS]
+    # bracketed report format — a structured "investigation report" shape
+    # would feel cold and wrong for someone telling you they're not okay.
+    if level == "selfharm":
+        country = _detect_country(_norm(message))
+        contact = (
+            f"La línea de ayuda en tu país es {CRISIS_LINES[country]}."
+            if country in CRISIS_LINES else
+            "Podés llamar a la línea de prevención del suicidio de tu país, o al número de emergencias local (decime tu país y te digo el número puntual)."
+        )
+        return (
+            f"Lamento mucho que estés sintiendo esto, {nickname}. Lo que me contás me importa de verdad, y esto no "
+            f"es algo que yo pueda resolver — pero hablarlo con alguien ahora sí puede ayudar. {contact} Si tenés a "
+            "alguien de confianza cerca, contale lo que me estás contando a mí ahora. ¿Estás en un lugar seguro en este momento?"
+        )
+    return (
+        f"Siento que estés pasando por un mal momento, {nickname}. No hace falta que me cuentes todo de una — "
+        "¿querés contarme un poco qué está pasando? Si hay algo que pueda ayudarte a investigar, organizar o simplemente "
+        "pensar en voz alta, acá estoy."
+    )
 
 
 # --------------------------------------------------------------------------
