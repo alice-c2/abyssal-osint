@@ -15,10 +15,29 @@
      dangerous. Never proactive, never vigilante-style.
    - Tool/results answers come back as an ordered list, not a
      wall of text.
+   - "Thinking" bubble while waiting for the first token.
+   - Case flow: when the backend flags a turn as an actual
+     investigation (see the `investigation` SSE event in
+     backend/main.py), Alice offers to open a case for it. If
+     the user says yes and names it, she creates the case and
+     folds the finding in via dashboard.js's
+     createCaseFromAlice()/addAliceFindingToCase() — the exact
+     same hub+satellite graph the manual "graph search" bar in
+     Cases produces, just triggered conversationally. Once a
+     case is open, later findings in the same session get added
+     to it automatically, without asking again. This is scoped
+     to Alice only — the tool modules and the manual graph
+     search are untouched.
 --------------------------------------------------------- */
 
 let aliceHistory = [];
 let aliceAwaitingNickname = false;
+let aliceAwaitingCaseConfirm = false;
+let aliceAwaitingCaseName = false;
+let aliceAwaitingSafetyFollowup = false;
+let alicePendingQuery = null;
+let aliceActiveCaseId = null;
+let aliceActiveCaseName = null;
 
 function loadAliceHistory() {
   try { return JSON.parse(sessionStorage.getItem('abyssal_alice_history') || '[]'); }
@@ -34,7 +53,7 @@ function renderAliceChat() {
   <div class="max-w-3xl mx-auto px-8 py-8 h-full flex flex-col">
     <div class="flex items-center gap-3 mb-5">
       <div class="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center text-primary-300">${icon('sparkle')}</div>
-      <div>
+      <div class="flex-1">
         <h1 class="font-semibold text-lg leading-tight">Alice AI</h1>
         <p class="text-sm text-gray-500">Your purpose-built OSINT assistant</p>
       </div>
@@ -79,7 +98,6 @@ function mountAliceChat() {
   const messagesEl = document.getElementById('aliceMessages');
   const input = document.getElementById('aliceInput');
   const btn = document.getElementById('aliceSendBtn');
-
   aliceHistory = loadAliceHistory();
   messagesEl.innerHTML = '';
 
@@ -97,6 +115,14 @@ function mountAliceChat() {
   }
   messagesEl.scrollTop = messagesEl.scrollHeight;
 
+  function say(text) {
+    const b = renderAliceBubble(messagesEl, 'assistant', text);
+    aliceHistory.push({ role: 'assistant', content: text });
+    saveAliceHistory();
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return b;
+  }
+
   async function send() {
     const text = input.value.trim();
     if (!text) return;
@@ -108,7 +134,65 @@ function mountAliceChat() {
       const nick = text.slice(0, 40);
       localStorage.setItem('abyssal_user_nickname', nick);
       aliceAwaitingNickname = false;
-      renderAliceBubble(messagesEl, 'assistant', `Genial, ${nick}. ¿En qué investigación te ayudo hoy?`);
+      say(`Genial, ${nick}. ¿En qué investigación te ayudo hoy?`);
+      return;
+    }
+
+    // ---- Case flow (Alice only — the tool modules and the manual graph
+    // search bar in Cases are untouched by any of this) ----
+    if (aliceAwaitingSafetyFollowup) {
+      aliceAwaitingSafetyFollowup = false;
+      if (/^\s*s(i|í)\b/i.test(text)) {
+        if (aliceActiveCaseId) {
+          say(`Dale — ya tenés el caso **${aliceActiveCaseName}** abierto. Seguí mandándome lo que vayas averiguando (alias, emails, dominios...) y lo voy sumando ahí.`);
+        } else {
+          aliceAwaitingCaseName = true;
+          say('¿Cómo querés llamar al caso?');
+        }
+        return;
+      }
+      // Anything else isn't clearly a "sí" — don't force a canned reply
+      // onto what might be a real new message, just fall through below.
+    }
+
+    if (aliceAwaitingCaseConfirm) {
+      aliceAwaitingCaseConfirm = false;
+      if (/^\s*s(i|í)\b/i.test(text)) {
+        aliceAwaitingCaseName = true;
+        say('¿Cómo querés llamar al caso?');
+      } else {
+        alicePendingQuery = null;
+        say('Dale, sigo sin abrir un caso. Avisame si cambiás de idea.');
+      }
+      return;
+    }
+
+    if (aliceAwaitingCaseName) {
+      aliceAwaitingCaseName = false;
+      const caseName = text.slice(0, 60);
+      const query = alicePendingQuery;
+      alicePendingQuery = null;
+      aliceActiveCaseId = createCaseFromAlice(caseName);
+      aliceActiveCaseName = caseName;
+
+      if (!query) {
+        say(`Listo — caso **${caseName}** creado. Contame lo que vayas averiguando (alias, emails, dominios...) y lo voy organizando ahí.`);
+        return;
+      }
+
+      const bubble = say(`Armando el caso "${caseName}"...`);
+      const textEl = bubble.querySelector('.msg-text');
+      try {
+        const found = await addAliceFindingToCase(aliceActiveCaseId, query);
+        const msg = found
+          ? `Listo — caso **${caseName}** creado, con ${found} hallazgo${found === 1 ? '' : 's'} sobre "${query}". Podés verlo en Cases → ${caseName} → Graph. Seguí preguntando y voy sumando más al mismo caso.`
+          : `Creé el caso **${caseName}**, pero no encontré nada consultable sobre "${query}" en los módulos en vivo. Igual queda abierto — lo que investiguemos de acá en más se va a ir agregando solo.`;
+        textEl.innerHTML = formatAliceMarkdown(msg);
+        aliceHistory[aliceHistory.length - 1].content = msg;
+        saveAliceHistory();
+      } catch (err) {
+        textEl.innerHTML = formatAliceMarkdown(`Creé el caso pero tuve un problema buscando "${query}": ${err.message || err}.`);
+      }
       messagesEl.scrollTop = messagesEl.scrollHeight;
       return;
     }
@@ -116,15 +200,20 @@ function mountAliceChat() {
     aliceHistory.push({ role: 'user', content: text });
     const bubble = renderAliceBubble(messagesEl, 'assistant', '');
     const textEl = bubble.querySelector('.msg-text');
+    textEl.innerHTML = '<span class="alice-thinking"><span></span><span></span><span></span></span>';
     btn.disabled = true;
 
     try {
       const nick = localStorage.getItem('abyssal_user_nickname') || 'investigador';
       const res = await fetch('/api/alice/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Access-Key': getAccessKey() },
         body: JSON.stringify({ nickname: nick, message: text }),
       });
+      if (res.status === 401) {
+        localStorage.removeItem(ACCESS_KEY_STORAGE);
+        promptForAccessKey();
+      }
       if (!res.ok || !res.body) {
         let detail = `El backend respondió con estado ${res.status}.`;
         try { detail = (await res.json()).detail || detail; } catch (e) { /* not JSON, keep default */ }
@@ -133,7 +222,7 @@ function mountAliceChat() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buf = '', full = '';
+      let buf = '', full = '', investigation = null, safetyFollowup = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -151,11 +240,28 @@ function mountAliceChat() {
             textEl.innerHTML = formatAliceMarkdown(full);
             messagesEl.scrollTop = messagesEl.scrollHeight;
           }
+          if (evt.type === 'investigation') investigation = evt;
+          if (evt.type === 'safety_followup') safetyFollowup = true;
         }
       }
       if (!full) throw new Error('Alice no devolvió texto. Probá de nuevo en un momento.');
       aliceHistory.push({ role: 'assistant', content: full });
       saveAliceHistory();
+      aliceAwaitingSafetyFollowup = safetyFollowup;
+
+      // A real indicator was investigated this turn — offer/grow a case.
+      if (investigation && investigation.query) {
+        if (aliceActiveCaseId) {
+          addAliceFindingToCase(aliceActiveCaseId, investigation.query).then(found => {
+            if (found) say(`🔗 Sumado al caso **${aliceActiveCaseName}**: ${found} hallazgo${found === 1 ? '' : 's'} sobre "${investigation.query}".`);
+          }).catch(() => { /* silent — don't interrupt the chat over a background add */ });
+        } else {
+          alicePendingQuery = investigation.query;
+          aliceAwaitingCaseConfirm = true;
+          aliceAwaitingSafetyFollowup = false; // the case question below supersedes it — avoid two pending questions at once
+          say('¿Querés que arme un caso con esto?');
+        }
+      }
     } catch (err) {
       textEl.innerHTML = formatAliceMarkdown(err.message || String(err));
       bubble.classList.add('text-red-300');

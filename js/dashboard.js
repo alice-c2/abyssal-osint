@@ -625,6 +625,72 @@ function newCase() {
   openCase(id);
 }
 
+/* ---- Alice AI integration -------------------------------------------
+   Alice (js/alice-chat.js) can open a case conversationally and keep
+   feeding it findings as the chat goes on. It never touches the tool
+   modules or the manual graph-search bar — those are unaffected. It
+   only ever creates a case here and grows it with the same hub+satellite
+   shape the manual "graph search" bar already produces, so a case built
+   from a chat looks and behaves identically to one built by hand. Starts
+   with zero notes (no "Untitled" placeholder) since the first note is
+   the actual finding, added right after via addAliceFindingToCase(). */
+function createCaseFromAlice(name) {
+  const id = 'case-' + Date.now();
+  CASES.push({ id, name: (name || 'Caso sin título').slice(0, 60), updated: 'Updated just now', notes: [] });
+  return id;
+}
+
+/* Data-only version of the graph search bar's fan-out (see
+   runGraphSearch() inside initGraph): queries every live module for
+   `query`, and merges whatever answers into a hub note (the query
+   itself) with one satellite note per module that found something,
+   cross-linked with [[wikilinks]]. Deliberately does NOT touch the
+   canvas/nodes arrays — those only exist while the Graph tab is mounted,
+   and Alice may add findings to a case the user isn't currently looking
+   at. Whenever the user opens Cases → that case → Graph, initGraph()
+   rebuilds its nodes straight from c.notes, so these show up there too. */
+async function addAliceFindingToCase(caseId, query) {
+  const c = CASES.find(x => x.id === caseId);
+  if (!c || !query) return 0;
+
+  const toolIds = Object.keys(window.LIVE_HANDLERS || {});
+  if (!toolIds.length) return 0;
+  const withTimeout = (p) => Promise.race([
+    p,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000)),
+  ]);
+  const settled = await Promise.allSettled(toolIds.map(id => withTimeout(fetchGraphToolItems(id, query))));
+  const results = [];
+  settled.forEach(res => { if (res.status === 'fulfilled') results.push(...res.value); });
+  if (!results.length) return 0;
+
+  let hub = findNoteByTitle(c, query);
+  if (!hub) {
+    hub = { id: 'n-' + Date.now(), title: query, tags: ['found', TOOL_TAG[primaryToolForQuery(query)] || 'default'], content: `Punto de partida: **${query}**` };
+    c.notes.push(hub);
+  }
+
+  const stamp = new Date().toLocaleTimeString();
+  results.forEach((r, idx) => {
+    const satTitle = `${query} — ${r.toolLabel}`;
+    let sat = findNoteByTitle(c, satTitle);
+    if (!sat) {
+      sat = { id: `n-${Date.now()}-${idx}`, title: satTitle, tags: ['found', TOOL_TAG[r.toolId] || 'default'], content: '' };
+      c.notes.push(sat);
+    }
+    sat.content = (sat.content ? sat.content + '\n\n---\n\n' : '') + `**${r.toolLabel}** — ${stamp}\n${r.plain}`;
+    if (!parseLinks(sat.content).some(l => l.toLowerCase() === hub.title.toLowerCase())) {
+      sat.content += `\n\nRelacionado con [[${hub.title}]].`;
+    }
+    if (!parseLinks(hub.content).some(l => l.toLowerCase() === sat.title.toLowerCase())) {
+      hub.content = (hub.content ? hub.content + '\n\n' : '') + `[[${sat.title}]]`;
+    }
+  });
+
+  c.updated = 'Updated just now';
+  return results.length;
+}
+
 function openCase(caseId) {
   const c = CASES.find(x => x.id === caseId);
   if (!c) return;
@@ -880,6 +946,51 @@ function initGraph(c) {
   }
   rebuildEdges();
 
+  /* Seeds a clean starting layout instead of fully-random placement, so
+     the physics sim only has to smooth out small overlaps instead of
+     untangling a random hairball — this is what actually makes a
+     hub-and-satellite case (the common shape here: one query note wired
+     to many finding notes, no finding-to-finding edges) come out looking
+     ordered instead of chaotic once there are a few dozen nodes.
+     1. Spread every hub (any node that isn't a single-edge leaf) around
+        the canvas center on a coarse ring.
+     2. Fan each hub's own leaves evenly around it on their own ring,
+        sized to the leaf count so they don't crowd. */
+  function seedRadialLayout() {
+    const neighborsOf = {};
+    edges.forEach(e => {
+      (neighborsOf[e.a] = neighborsOf[e.a] || []).push(e.b);
+      (neighborsOf[e.b] = neighborsOf[e.b] || []).push(e.a);
+    });
+
+    const hubs = nodes.filter(n => (neighborsOf[n.id] || []).length !== 1);
+    hubs.forEach((hub, i) => {
+      if (hubs.length === 1) { hub.x = w / 2; hub.y = h / 2; return; }
+      const angle = (2 * Math.PI * i) / hubs.length;
+      const ring = Math.min(w, h) * 0.22;
+      hub.x = w / 2 + Math.cos(angle) * ring;
+      hub.y = h / 2 + Math.sin(angle) * ring;
+    });
+
+    const leavesByHub = {};
+    nodes.forEach(n => {
+      const neighbors = neighborsOf[n.id] || [];
+      if (neighbors.length === 1) (leavesByHub[neighbors[0]] = leavesByHub[neighbors[0]] || []).push(n.id);
+    });
+    Object.entries(leavesByHub).forEach(([hubId, leafIds]) => {
+      const hub = nodeById[hubId];
+      if (!hub) return;
+      const ring = Math.max(150, 38 * Math.sqrt(leafIds.length));
+      leafIds.forEach((id, i) => {
+        const n = nodeById[id];
+        const angle = (2 * Math.PI * i) / leafIds.length;
+        n.x = hub.x + Math.cos(angle) * ring;
+        n.y = hub.y + Math.sin(angle) * ring;
+      });
+    });
+  }
+  seedRadialLayout();
+
   function simulate(iterations) {
     for (let iter = 0; iter < iterations; iter++) {
       for (let i = 0; i < nodes.length; i++) {
@@ -887,7 +998,7 @@ function initGraph(c) {
           const a = nodes[i], b = nodes[j];
           let dx = a.x - b.x, dy = a.y - b.y;
           const d = Math.hypot(dx, dy) || 0.01;
-          const force = 2200 / (d * d);
+          const force = 2800 / (d * d);
           dx /= d; dy /= d;
           a.vx += dx * force; a.vy += dy * force;
           b.vx -= dx * force; b.vy -= dy * force;
@@ -898,7 +1009,7 @@ function initGraph(c) {
         if (!a || !b) return;
         let dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 0.01;
-        const force = (d - 130) * 0.02;
+        const force = (d - 175) * 0.018;
         dx /= d; dy /= d;
         a.vx += dx * force; a.vy += dy * force;
         b.vx -= dx * force; b.vy -= dy * force;
@@ -922,7 +1033,21 @@ function initGraph(c) {
   function nodeRadius(n) {
     const active = n.id === workspace.noteId;
     const deg = degree[n.id] || 0;
-    return (active ? 9 : 6.5) + Math.min(deg, 6) * 1.1;
+    return (active ? 10 : 7.5) + Math.min(deg, 6) * 1.3;
+  }
+
+  // Deterministic per-edge curve offset (not random-per-frame — draw() runs
+  // on every hover/drag, and re-rolling the bend each time would make the
+  // lines flicker/jitter instead of just looking gently curved).
+  const edgeBends = {};
+  function edgeBend(e) {
+    const key = e.a + '|' + e.b;
+    if (edgeBends[key] === undefined) {
+      let hash = 0;
+      for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+      edgeBends[key] = ((hash % 1000) / 1000 - 0.5) * 0.5;
+    }
+    return edgeBends[key];
   }
 
   function draw() {
@@ -937,9 +1062,13 @@ function initGraph(c) {
       const dim = hoverNode && hoverNode.id !== a.id && hoverNode.id !== b.id;
       const bright = hoverNode && (hoverNode.id === a.id || hoverNode.id === b.id);
       ctx.strokeStyle = bright ? 'rgba(255,255,255,0.65)' : dim ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.28)';
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const bend = edgeBend(e);
+      const cx = mx - dy * bend, cy = my + dx * bend;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.quadraticCurveTo(cx, cy, b.x, b.y);
       ctx.stroke();
     });
 

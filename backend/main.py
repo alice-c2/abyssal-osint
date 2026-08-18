@@ -40,9 +40,9 @@ from urllib.parse import quote, unquote
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend import alice_brain
@@ -66,10 +66,30 @@ OPENCELLID_API_KEY = os.environ.get("OPENCELLID_API_KEY", "")
 NETRYX_ASTRA_URL = os.environ.get("NETRYX_ASTRA_URL", "").rstrip("/")
 TRUECALLER_INSTALLATION_ID = os.environ.get("TRUECALLER_INSTALLATION_ID", "")
 TRUECALLER_LOOKUP_SCRIPT = ROOT_DIR / "backend" / "truecaller_cli" / "lookup.js"
+DASHBOARD_ACCESS_KEY = os.environ.get("DASHBOARD_ACCESS_KEY", "")
 
 app = FastAPI(title="Abyssal OSINT API")
 
 HTTP_TIMEOUT = httpx.Timeout(12.0)
+
+
+# Every /api/* route below spends a paid quota (OathNet, Shodan, VirusTotal,
+# Indicia/Hudson Rock, Wigle, Numverify, Truecaller...) that lives server-side
+# specifically so visitors don't need their own key. Without this gate,
+# anyone who knows (or guesses) an endpoint URL can hit it directly and burn
+# that quota — no browser, no dashboard, just curl. Same 503-if-unset style
+# as the rest of this file: refuse to run unconfigured rather than silently
+# serving unauthenticated. The frontend sends the key back as X-Access-Key
+# (see js/live-tools.js) — this is a shared secret for a small/private
+# deployment, not real multi-user auth.
+@app.middleware("http")
+async def require_access_key(request: Request, call_next):
+    if request.url.path.startswith("/api/"):
+        if not DASHBOARD_ACCESS_KEY:
+            return JSONResponse(status_code=503, content={"detail": "El servidor no tiene configurada una clave de acceso (.env: DASHBOARD_ACCESS_KEY)."})
+        if request.headers.get("x-access-key") != DASHBOARD_ACCESS_KEY:
+            return JSONResponse(status_code=401, content={"detail": "Clave de acceso inválida o faltante."})
+    return await call_next(request)
 
 
 async def get_json(url: str, **kwargs):
@@ -312,7 +332,11 @@ async def _check_status_200(client: httpx.AsyncClient, url: str):
 async def _check_keybase(client: httpx.AsyncClient, username: str):
     try:
         r = await client.get("https://keybase.io/_/api/1.0/user/lookup.json", params={"usernames": username})
-        return bool(r.json().get("them"))
+        # A miss comes back as {"them": [null]} — a non-empty list whose
+        # only element is None — so checking truthiness of the list alone
+        # (the previous check) reports every username as "found".
+        them = r.json().get("them") or []
+        return bool(them) and them[0] is not None
     except (httpx.RequestError, ValueError):
         return None
 
@@ -685,6 +709,11 @@ async def oathnet_get(path: str, params: dict):
         message = data.get("message") or (data.get("errors") or {}).get("error") or f"El servicio respondió con estado {r.status_code}."
         raise HTTPException(r.status_code if r.status_code >= 400 else 502, message)
 
+    # OathNet embeds our account's plan/quota/queries-left-today under
+    # "_meta" in every response body (not headers) — strip it before it
+    # reaches the client. Anyone who can see it can watch our quota drain
+    # in real time and knows exactly how many free shots they have left.
+    data.pop("_meta", None)
     return data
 
 
@@ -1232,18 +1261,43 @@ async def _run_investigation(plan: dict, nickname: str) -> str:
             return f"Intenté analizar la dirección {value}, {nickname}, pero no obtuve resultados ({exc.detail})."
         return alice_brain.format_crypto_report(nickname, data)
 
+    if kind == "email":
+        try:
+            data = await email_osint(value)
+        except HTTPException as exc:
+            return f"Intenté buscar {value}, {nickname}, pero no obtuve resultados ({exc.detail})."
+        return alice_brain.format_email_report(nickname, value, data)
+
+    if kind == "username":
+        try:
+            data = await usernames_check(value)
+        except HTTPException as exc:
+            return f'Busqué el alias "{value}", {nickname}, pero no obtuve resultados ({exc.detail}).'
+        return alice_brain.format_username_report(nickname, value, data)
+
     return alice_brain.respond(value, nickname)
 
 
 @app.post("/api/alice/chat")
 async def alice_chat(payload: ChatRequest):
     nickname = payload.nickname or "investigador"
+    plan = alice_brain.plan_investigation(payload.message)
+    danger = alice_brain.is_danger_message(payload.message)
 
-    if alice_brain.is_danger_message(payload.message):
+    if plan:
+        # A concrete indicator (alias, email, IP...) was given alongside a
+        # danger keyword — e.g. "el alias del extorsionador es X". Do both:
+        # actually run the passive lookup the user asked for (that's step 1
+        # of the safety advice itself — preservar evidencia) AND still show
+        # the safety guidance, instead of the safety text silently
+        # swallowing the investigation.
+        reply = await _run_investigation(plan, nickname)
+        if danger:
+            reply += "\n\n---\n\n" + alice_brain.safety_response(nickname, payload.message)
+    elif danger:
         reply = alice_brain.safety_response(nickname, payload.message)
     else:
-        plan = alice_brain.plan_investigation(payload.message)
-        reply = await _run_investigation(plan, nickname) if plan else alice_brain.respond(payload.message, nickname)
+        reply = alice_brain.respond(payload.message, nickname)
 
     async def stream():
         words = reply.split(" ")
@@ -1251,6 +1305,18 @@ async def alice_chat(payload: ChatRequest):
             chunk = word + (" " if i < len(words) - 1 else "")
             yield f'data: {json.dumps({"type": "content_block_delta", "delta": {"type": "text_delta", "text": chunk}})}\n\n'
             await asyncio.sleep(0.025)
+        # Lets the frontend know this turn actually investigated something
+        # concrete (vs. plain conversation), so it can offer to fold the
+        # finding into a case — see js/alice-chat.js's case flow.
+        if plan:
+            yield f'data: {json.dumps({"type": "investigation", "query": plan["value"], "kind": plan["type"]})}\n\n'
+        # Safety guidance ends on a yes/no question ("¿Querés que te ayude a
+        # organizar...?") but this endpoint is stateless per-turn — without
+        # this flag the frontend has no way to know a plain "sí" next
+        # message is answering that question rather than a new, unrelated
+        # one-word message it won't understand.
+        if danger:
+            yield f'data: {json.dumps({"type": "safety_followup"})}\n\n'
 
     return StreamingResponse(stream(), media_type="text/event-stream")
 

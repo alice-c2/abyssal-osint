@@ -154,19 +154,29 @@ def _detect_country(text: str) -> str | None:
 
 def _safety_response(nickname: str, text: str) -> str:
     country = _detect_country(text)
-    if country:
-        authority_line = f"\n3. Denuncialo ante {COUNTRY_AUTHORITIES[country]}, que es quien tiene jurisdiccion para esto en {country.title()}."
-    else:
-        authority_line = "\n3. Denuncialo ante la policia o la unidad de delitos informaticos de tu pais (decime el pais si queres que te diga a quien contactar puntualmente)."
-
-    return (
-        f"Entiendo, {nickname}. Si estas investigando a alguien que representa un peligro real, "
-        "lo mas importante es que no actues solo/a ni te expongas — la salida siempre es pasiva y legal:\n\n"
-        "1. Guarda toda la evidencia que ya tengas (capturas, mensajes, perfiles, IPs) sin alterarla ni publicarla.\n"
-        "2. No confrontes directamente a la persona ni expongas lo que encontraste en redes — podes alertarla, perder evidencia, o exponerte vos.\n"
-        f"{authority_line}\n"
-        "4. Si hay un menor involucrado o hay riesgo inmediato, priorizá el contacto con la policia por sobre seguir investigando.\n\n"
-        "¿Queres que te ayude a organizar lo que ya recopilaste antes de denunciar?"
+    authority = (
+        f"Denuncialo ante {COUNTRY_AUTHORITIES[country]}, que es quien tiene jurisdicción para esto en {country.title()}."
+        if country else
+        "Denuncialo ante la policía o la unidad de delitos informáticos de tu país (decime el país si querés que te diga a quién contactar puntualmente)."
+    )
+    return _report(
+        summary=(
+            f"Mencionaste una situación de riesgo (extorsión, amenaza o acoso), {nickname}. "
+            "Esto es la guía de seguridad estándar para esta situación — no una evaluación de un caso "
+            "concreto, porque todavía no tengo detalles verificables sobre el tuyo."
+        ),
+        risk=(
+            "NO EVALUABLE con lo compartido hasta ahora — depende de la urgencia, el plazo impuesto y si "
+            "hay riesgo físico inmediato. Contame más detalles (o los indicadores del contacto — alias, "
+            "email, teléfono) si querés que lo evalúe puntualmente."
+        ),
+        recommendations=[
+            "Guardá toda la evidencia que ya tengas (capturas, mensajes, perfiles, IPs) sin alterarla ni publicarla.",
+            "No confrontes directamente a la persona ni expongas lo que encontraste en redes — podés alertarla, perder evidencia, o exponerte vos.",
+            authority,
+            "Si hay un menor involucrado o hay riesgo inmediato, priorizá el contacto con la policía por sobre seguir investigando.",
+        ],
+        followup="¿Querés que te ayude a organizar lo que ya recopilaste antes de denunciar?",
     )
 
 
@@ -210,12 +220,27 @@ THANKS = ["gracias", "genial gracias", "perfecto gracias", "10 4"]
 
 _IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _BTC_RE = re.compile(r"\b(?:1|3|bc1)[a-zA-HJ-NP-Z0-9]{20,60}\b")
+_EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}\b")
 _DOMAIN_RE = re.compile(r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,24}\b")
 _GITHUB_URL_RE = re.compile(r"github\.com/([A-Za-z0-9-]{1,39})", re.IGNORECASE)
 
 _STOPWORDS = {
-    "github", "roblox", "usuario", "de", "en", "el", "la", "un", "una", "por", "para",
-    "investiga", "investigame", "busca", "buscame", "info", "sobre", "a", "al", "perfil",
+    "github", "roblox", "usuario", "username", "alias", "de", "en", "el", "la", "un", "una", "por", "para",
+    "investiga", "investigame", "busca", "buscame", "info", "sobre", "a", "al", "perfil", "es", "del",
+    "companero", "compañero", "otra", "otro", "y", "tambien", "esta", "este",
+}
+
+# Platform/brand names that show up constantly in normal phrasing ("su
+# alias es de tiktok", "el otro es de instagram") and would otherwise get
+# picked up as the LAST leftover token and investigated as if they were
+# someone's personal handle — that's a false lead, not a finding, and it
+# pollutes a case with junk nodes. Alice already has dedicated tools/
+# keywords for these platforms; this list only blocks them from being
+# mistaken for an alias by the generic last-token heuristic.
+_ALIAS_NOISE = {
+    "alice", "tiktok", "instagram", "facebook", "whatsapp", "telegram",
+    "snapchat", "gmail", "hotmail", "outlook", "youtube", "twitter", "x",
+    "discord", "twitch", "linkedin", "pinterest", "reddit",
 }
 
 
@@ -223,7 +248,7 @@ def _username_after_keyword(raw_text: str, keyword: str) -> str | None:
     if keyword not in _norm(raw_text):
         return None
     tokens = re.findall(r"[A-Za-z0-9_-]+", raw_text)
-    candidates = [t for t in tokens if _norm(t) not in _STOPWORDS]
+    candidates = [t for t in tokens if _norm(t) not in _STOPWORDS and _norm(t) not in _ALIAS_NOISE]
     return candidates[-1] if candidates else None
 
 
@@ -243,6 +268,13 @@ def plan_investigation(raw_text: str) -> dict | None:
     if m:
         return {"type": "ip", "value": m.group(0)}
 
+    # Must run before _DOMAIN_RE — "user@gmail.com" also matches the domain
+    # pattern on its "gmail.com" tail, which would silently drop the local
+    # part and investigate the wrong thing (the domain, not the mailbox).
+    m = _EMAIL_RE.search(raw_text)
+    if m:
+        return {"type": "email", "value": m.group(0)}
+
     m = _DOMAIN_RE.search(raw_text)
     if m and "roblox.com" not in m.group(0).lower():
         return {"type": "domain", "value": m.group(0)}
@@ -255,6 +287,14 @@ def plan_investigation(raw_text: str) -> dict | None:
     if user:
         return {"type": "roblox", "value": user}
 
+    # Generic alias/username lookup (cross-platform public profile check) —
+    # only fires on an explicit keyword so a stray short word in normal
+    # conversation never gets mistaken for someone's handle.
+    for keyword in ("alias", "username", "usuario"):
+        user = _username_after_keyword(raw_text, keyword)
+        if user:
+            return {"type": "username", "value": user}
+
     return None
 
 
@@ -264,33 +304,87 @@ def _fmt_date(value) -> str:
     return str(value)[:10]
 
 
+# --------------------------------------------------------------------------
+# Structured report assembly — every investigation answer (and the safety
+# response) goes through this so hechos/indicadores/fuentes/confianza stay
+# in a consistent, auditable shape instead of free-form prose. Sections
+# with nothing in them are simply omitted, not printed empty — a plain
+# "hola" or a tool description never goes through here at all, only actual
+# investigation output does.
+# --------------------------------------------------------------------------
+
+def _report(summary: str, facts=None, indicators=None, sources=None, relations=None,
+            inferences=None, hypotheses=None, confidence=None, risk=None,
+            recommendations=None, followup=None) -> str:
+    def block(label, items):
+        if not items:
+            return None
+        body = items if isinstance(items, str) else "\n".join(f"- {i}" for i in items)
+        return f"[{label}]\n{body}"
+
+    parts = [f"[RESUMEN]\n{summary}"]
+    for label, val in (
+        ("HECHOS", facts), ("INDICADORES", indicators), ("RELACIONES", relations),
+        ("FUENTES", sources), ("INFERENCIAS", inferences),
+        ("HIPÓTESIS ALTERNATIVAS", hypotheses),
+    ):
+        b = block(label, val)
+        if b:
+            parts.append(b)
+    if confidence:
+        parts.append(f"[NIVEL DE CONFIANZA]\n{confidence}")
+    if risk:
+        parts.append(f"[NIVEL DE RIESGO]\n{risk}")
+    b = block("RECOMENDACIONES DEFENSIVAS", recommendations)
+    if b:
+        parts.append(b)
+
+    text = "\n\n".join(parts)
+    if followup:
+        text += f"\n\n{followup}"
+    return text
+
+
 def format_ip_report(nickname: str, ip: str, ipinfo: dict, shodan_data: dict | None, shodan_error: str | None) -> str:
     conn = ipinfo.get("connection", {}) or {}
-    lines = [f"Esto encontré sobre **{ip}**, {nickname}:\n", "**Ubicación y red**"]
-    lines.append(f"1. País: {ipinfo.get('country', '—')} ({ipinfo.get('city', '—')})")
-    lines.append(f"2. ISP: {conn.get('isp', '—')}")
-    lines.append(f"3. Organización: {conn.get('org', '—')}")
-    lines.append(f"4. ASN: AS{conn.get('asn', '—')}")
+    facts = [
+        f"País: {ipinfo.get('country', '—')} (ciudad: {ipinfo.get('city', '—')})",
+        f"ISP: {conn.get('isp', '—')}",
+        f"Organización: {conn.get('org', '—')}",
+        f"ASN: AS{conn.get('asn', '—')}",
+    ]
+    sources = ["ipinfo.io (geolocalización IP)"]
+    indicators = [f"IP: {ip}"]
 
     if shodan_data:
         ports = shodan_data.get("ports", [])
-        lines.append("\n**Shodan**")
-        lines.append(f"1. Puertos abiertos: {', '.join(str(p) for p in ports) or 'ninguno detectado'}")
+        facts.append(f"Shodan — puertos abiertos: {', '.join(str(p) for p in ports) or 'ninguno detectado'}")
         if shodan_data.get("org"):
-            lines.append(f"2. Organización (Shodan): {shodan_data['org']}")
+            facts.append(f"Shodan — organización: {shodan_data['org']}")
         hostnames = shodan_data.get("hostnames") or []
         if hostnames:
-            lines.append(f"3. Hostnames: {', '.join(hostnames)}")
+            facts.append(f"Shodan — hostnames: {', '.join(hostnames)}")
+            indicators.extend(f"Hostname: {h}" for h in hostnames)
+        sources.append("Shodan (puertos y banners)")
     elif shodan_error:
-        lines.append(f"\n**Shodan**: {shodan_error}")
+        facts.append(f"Shodan no disponible: {shodan_error}")
 
-    lines.append("\n¿Querés que profundice en algo puntual?")
-    return "\n".join(lines)
+    return _report(
+        summary=f"Consulta de infraestructura sobre la IP **{ip}**, {nickname}.",
+        facts=facts,
+        indicators=indicators,
+        sources=sources,
+        confidence="Alto — datos obtenidos en tiempo real directo de la fuente.",
+        followup="¿Querés que profundice en algo puntual?",
+    )
 
 
 def format_domain_report(nickname: str, domain: str, whois_data: dict | None, whois_err: str | None,
                           dns_data: dict | None, dns_err: str | None, wayback_data: dict | None) -> str:
-    lines = [f"Investigación completa de **{domain}**, {nickname}:\n", "**Whois**"]
+    facts = []
+    sources = []
+    indicators = [f"Dominio: {domain}"]
+
     if whois_data:
         events = whois_data.get("events", []) or []
 
@@ -310,90 +404,191 @@ def format_domain_report(nickname: str, domain: str, whois_data: dict | None, wh
                         break
                 registrar = name or e.get("handle") or registrar
 
-        lines.append(f"1. Registrador: {registrar}")
-        lines.append(f"2. Creado: {ev('registration')}")
-        lines.append(f"3. Expira: {ev('expiration')}")
+        facts.append(f"Whois — registrador: {registrar}")
+        facts.append(f"Whois — creado: {ev('registration')}")
+        facts.append(f"Whois — expira: {ev('expiration')}")
+        sources.append("RDAP/Whois")
     else:
-        lines.append(f"No se pudo obtener ({whois_err or 'sin datos'}).")
+        facts.append(f"Whois no disponible ({whois_err or 'sin datos'}).")
 
-    lines.append("\n**DNS**")
     if dns_data:
-        i = 0
+        any_records = False
         for rtype, answers in dns_data.items():
             if answers:
-                i += 1
+                any_records = True
                 values = ", ".join(a.get("data", "") for a in answers[:4])
-                lines.append(f"{i}. {rtype}: {values}")
-        if i == 0:
-            lines.append("Sin registros encontrados.")
+                facts.append(f"DNS {rtype}: {values}")
+                if rtype == "A":
+                    indicators.extend(f"IP: {a.get('data')}" for a in answers[:4] if a.get("data"))
+        if not any_records:
+            facts.append("DNS: sin registros encontrados.")
+        sources.append("DNS recursivo")
     else:
-        lines.append(f"No se pudo obtener ({dns_err or 'sin datos'}).")
+        facts.append(f"DNS no disponible ({dns_err or 'sin datos'}).")
 
-    lines.append("\n**Wayback Machine**")
     snap = ((wayback_data or {}).get("archived_snapshots") or {}).get("closest")
     if snap:
         ts = snap.get("timestamp", "")
         readable = f"{ts[6:8]}/{ts[4:6]}/{ts[:4]}" if len(ts) >= 8 else ts
-        lines.append(f"Hay una captura archivada del {readable}.")
+        facts.append(f"Wayback Machine: captura archivada del {readable}.")
+        sources.append("Wayback Machine (archive.org)")
     else:
-        lines.append("No hay capturas archivadas.")
+        facts.append("Wayback Machine: no hay capturas archivadas.")
 
-    lines.append("\n¿Querés que profundice en algo puntual — certificados SSL, o Shodan si tenés la IP?")
-    return "\n".join(lines)
+    return _report(
+        summary=f"Investigación de infraestructura sobre el dominio **{domain}**, {nickname}.",
+        facts=facts,
+        indicators=indicators,
+        sources=sources,
+        confidence="Alto — Whois, DNS y Wayback consultados en vivo.",
+        followup="¿Querés que profundice en algo puntual — certificados SSL, o Shodan si tenés la IP?",
+    )
 
 
 def format_github_report(nickname: str, d: dict) -> str:
-    lines = [f"Esto encontré del usuario de GitHub **{d.get('login')}**, {nickname}:\n"]
-    lines.append(f"1. Nombre: {d.get('name') or '—'}")
-    lines.append(f"2. Bio: {d.get('bio') or '—'}")
-    lines.append(f"3. Repos públicos: {d.get('public_repos', 0)}")
-    lines.append(f"4. Seguidores: {d.get('followers', 0)}")
-    lines.append(f"5. Cuenta creada: {_fmt_date(d.get('created_at'))}")
-    n = 6
+    facts = [
+        f"Nombre: {d.get('name') or '—'}",
+        f"Bio: {d.get('bio') or '—'}",
+        f"Repos públicos: {d.get('public_repos', 0)}",
+        f"Seguidores: {d.get('followers', 0)}",
+        f"Cuenta creada: {_fmt_date(d.get('created_at'))}",
+    ]
+    indicators = [f"Usuario de GitHub: {d.get('login')}"]
     if d.get("email"):
-        lines.append(f"{n}. Email público: {d['email']}")
-        n += 1
+        facts.append(f"Email público: {d['email']}")
+        indicators.append(f"Email: {d['email']}")
     if d.get("twitter_username"):
-        lines.append(f"{n}. Twitter/X: @{d['twitter_username']}")
-        n += 1
+        facts.append(f"Twitter/X vinculado: @{d['twitter_username']}")
+        indicators.append(f"Usuario de Twitter/X: {d['twitter_username']}")
     if d.get("location"):
-        lines.append(f"{n}. Ubicación declarada: {d['location']}")
-        n += 1
+        facts.append(f"Ubicación declarada: {d['location']}")
     if d.get("blog"):
-        lines.append(f"{n}. Sitio/enlace: {d['blog']}")
-        n += 1
+        facts.append(f"Sitio/enlace: {d['blog']}")
+        indicators.append(f"URL: {d['blog']}")
     if not d.get("email"):
-        lines.append("\n(No tiene email público en el perfil — GitHub ya no expone emails vía la API de eventos, así que si no lo puso público a propósito, no hay forma legítima de conseguirlo desde acá.)")
-    lines.append(f"\nPerfil: {d.get('html_url', '—')}")
-    return "\n".join(lines)
+        facts.append("Sin email público en el perfil (GitHub ya no lo expone vía API salvo que el usuario lo haya hecho público a propósito).")
+
+    return _report(
+        summary=f"Perfil público de GitHub de **{d.get('login')}**, {nickname}.",
+        facts=facts,
+        indicators=indicators,
+        sources=["GitHub API (perfil público)"],
+        confidence="Alto — perfil público consultado directamente en GitHub.",
+        hypotheses=["Nombre y ubicación son autodeclarados por el usuario en su perfil — no verificados de forma independiente."] if (d.get("location") or d.get("name")) else None,
+        followup=f"Perfil: {d.get('html_url', '—')}",
+    )
 
 
 def format_roblox_report(nickname: str, d: dict) -> str:
-    lines = [f"Esto encontré del usuario de Roblox **{d.get('name')}**, {nickname}:\n"]
-    lines.append(f"1. Nombre para mostrar: {d.get('displayName') or '—'}")
-    lines.append(f"2. ID permanente: {d.get('id')}")
-    lines.append(f"3. Seguidores: {d.get('followers', 0)}")
-    lines.append(f"4. Siguiendo: {d.get('following', 0)}")
-    lines.append(f"5. Amigos: {d.get('friends', 0)}")
-    lines.append(f"6. Cuenta creada: {_fmt_date(d.get('created'))}")
+    facts = [
+        f"Nombre para mostrar: {d.get('displayName') or '—'}",
+        f"ID permanente: {d.get('id')}",
+        f"Seguidores: {d.get('followers', 0)}",
+        f"Siguiendo: {d.get('following', 0)}",
+        f"Amigos: {d.get('friends', 0)}",
+        f"Cuenta creada: {_fmt_date(d.get('created'))}",
+    ]
     if d.get("description"):
-        lines.append(f"7. Descripción: {d['description']}")
+        facts.append(f"Descripción: {d['description']}")
     if d.get("isBanned"):
-        lines.append("\n⚠️ Esta cuenta está baneada.")
-    lines.append(f"\nPerfil: https://www.roblox.com/users/{d.get('id')}/profile")
-    return "\n".join(lines)
+        facts.append("⚠️ Esta cuenta está baneada.")
+
+    return _report(
+        summary=f"Perfil público de Roblox de **{d.get('name')}**, {nickname}.",
+        facts=facts,
+        indicators=[f"Usuario de Roblox: {d.get('name')}", f"ID de Roblox: {d.get('id')}"],
+        sources=["Roblox API (perfil público)"],
+        confidence="Alto — perfil público consultado directamente en Roblox.",
+        followup=f"Perfil: https://www.roblox.com/users/{d.get('id')}/profile",
+    )
+
+
+def format_email_report(nickname: str, email: str, d: dict) -> str:
+    data = d.get("data", {}) or {}
+    accounts = list(data.get("domains") or [])
+    google = data.get("google_account")
+    if google:
+        accounts.append(f"Google ({google.get('name') or google.get('full_name') or 'perfil público'})")
+    if data.get("gravatar_url"):
+        accounts.append("Gravatar (foto de perfil)")
+
+    facts = []
+    sources = ["Holehe (existencia de cuenta por servicio)"]
+    if accounts:
+        facts.append("Cuentas vinculadas encontradas: " + ", ".join(accounts))
+    else:
+        facts.append("No se encontraron cuentas vinculadas entre los servicios chequeados.")
+    if data.get("quota_exhausted"):
+        facts.append("⚠️ Sin cuota disponible por ahora — este resultado puede estar incompleto.")
+    elif data.get("holehe_error"):
+        facts.append(f"⚠️ {data['holehe_error']}")
+
+    recommendations = None
+    lc = data.get("leakcheck")
+    if lc and lc.get("success"):
+        found = lc.get("found", 0)
+        facts.append(f"Encontrado en {found} filtracion{'es' if found != 1 else ''} de datos (sin exponer credenciales crudas).")
+        lc_sources = lc.get("sources") or []
+        if lc_sources:
+            facts.append("Filtraciones de: " + ", ".join(s.get("name", "—") for s in lc_sources[:10]))
+        sources.append("LeakCheck (bases de filtraciones públicas)")
+        if found:
+            recommendations = [
+                "Cambiar la contraseña de este email y de cualquier cuenta que la reutilice.",
+                "Activar autenticación en dos pasos donde esté disponible.",
+            ]
+    else:
+        facts.append(data.get("leakcheck_error") or "Sin resultados de filtraciones.")
+
+    return _report(
+        summary=f"Investigación OSINT sobre el email **{email}**, {nickname}.",
+        facts=facts,
+        indicators=[f"Email: {email}"] + [f"Cuenta vinculada: {a}" for a in accounts],
+        sources=sources,
+        confidence="Alto — existencia de cuenta y filtraciones consultadas en vivo.",
+        recommendations=recommendations,
+        followup="¿Querés que profundice en algo puntual, o que use Hudson Rock para ver si hay credenciales de infostealer expuestas para este email?",
+    )
+
+
+def format_username_report(nickname: str, username: str, d: dict) -> str:
+    platforms = d.get("platforms") or {}
+    found = [(name, info) for name, info in platforms.items() if info.get("exists") is True]
+
+    facts = (
+        [f"Perfil público encontrado en {name}: {info.get('url', '—')}" for name, info in found]
+        if found else
+        ["No se encontró un perfil público con ese alias en ninguna de las plataformas chequeadas (GitHub, GitLab, DEV.to, SoundCloud, Keybase, Hacker News)."]
+    )
+
+    return _report(
+        summary=f'Chequeo de existencia de perfil público para el alias **"{username}"**, {nickname}.',
+        facts=facts,
+        indicators=[f"Alias: {username}"],
+        sources=["GitHub, GitLab, DEV.to, SoundCloud, Keybase, Hacker News (existencia de perfil público)"],
+        inferences=["Que el/los perfil(es) encontrados pertenezcan a la persona que estás investigando es una inferencia — la coincidencia de alias por sí sola no confirma identidad sin más señales que lo crucen (foto, bio, actividad, otros datos compartidos)."] if found else None,
+        confidence="Moderado — coincidencia de alias, no identificación confirmada." if found else "Alto — no se encontró coincidencia en las plataformas chequeadas.",
+        followup="¿Querés que lo sume al caso o que pruebe otra variante del alias?",
+    )
 
 
 def format_crypto_report(nickname: str, d: dict) -> str:
     def btc(sat):
         return f"{(sat or 0) / 1e8:.8f} BTC"
 
-    lines = [f"Análisis de la dirección **{d.get('address')}**, {nickname}:\n"]
-    lines.append(f"1. Balance actual: {btc(d.get('final_balance'))}")
-    lines.append(f"2. Total recibido: {btc(d.get('total_received'))}")
-    lines.append(f"3. Total enviado: {btc(d.get('total_sent'))}")
-    lines.append(f"4. Transacciones: {d.get('n_tx', 0)}")
-    return "\n".join(lines)
+    facts = [
+        f"Balance actual: {btc(d.get('final_balance'))}",
+        f"Total recibido: {btc(d.get('total_received'))}",
+        f"Total enviado: {btc(d.get('total_sent'))}",
+        f"Transacciones: {d.get('n_tx', 0)}",
+    ]
+    return _report(
+        summary=f"Análisis on-chain de la dirección **{d.get('address')}**, {nickname}.",
+        facts=facts,
+        indicators=[f"Dirección BTC: {d.get('address')}"],
+        sources=["Blockchain pública (blockchain.info)"],
+        confidence="Alto — datos on-chain, públicos y verificables por cualquiera.",
+    )
 
 
 def is_danger_message(message: str) -> bool:

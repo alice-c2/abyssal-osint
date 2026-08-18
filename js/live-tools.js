@@ -44,6 +44,30 @@ function stripUrl(query) {
   return query.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
 }
 
+/* Every /api/* route requires X-Access-Key (see backend/main.py's
+   require_access_key middleware) so a random visitor can't hit endpoint
+   URLs directly and drain our paid OathNet/Shodan/VirusTotal/etc quotas.
+   This is a shared secret for a small/private deployment, not real
+   multi-user auth — it lives in localStorage and goes out as a plain
+   header, so anyone with devtools access to a logged-in browser can read
+   it. Good enough to stop drive-by/bot abuse of bare URLs; not a
+   replacement for real auth if this ever needs to be genuinely public. */
+const ACCESS_KEY_STORAGE = 'abyssal_access_key';
+
+function getAccessKey() {
+  return localStorage.getItem(ACCESS_KEY_STORAGE) || '';
+}
+
+function promptForAccessKey() {
+  const key = window.prompt('Clave de acceso del dashboard:');
+  if (key && key.trim()) localStorage.setItem(ACCESS_KEY_STORAGE, key.trim());
+  return getAccessKey();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getAccessKey()) promptForAccessKey();
+});
+
 /* Calls our own backend. Throws a friendly Error on any non-2xx,
    using FastAPI's {detail: "..."} body when present. */
 async function apiGet(path, params) {
@@ -52,9 +76,14 @@ async function apiGet(path, params) {
 
   let res;
   try {
-    res = await fetch(url.toString());
+    res = await fetch(url.toString(), { headers: { 'X-Access-Key': getAccessKey() } });
   } catch (e) {
     throw new Error('No se pudo conectar con el backend. ¿Está corriendo `uvicorn backend.main:app`?');
+  }
+
+  if (res.status === 401) {
+    localStorage.removeItem(ACCESS_KEY_STORAGE);
+    promptForAccessKey();
   }
 
   if (!res.ok) {
@@ -73,9 +102,14 @@ async function apiPostFile(path, fieldName, file) {
 
   let res;
   try {
-    res = await fetch(path, { method: 'POST', body: fd });
+    res = await fetch(path, { method: 'POST', body: fd, headers: { 'X-Access-Key': getAccessKey() } });
   } catch (e) {
     throw new Error('No se pudo conectar con el backend. ¿Está corriendo `uvicorn backend.main:app`?');
+  }
+
+  if (res.status === 401) {
+    localStorage.removeItem(ACCESS_KEY_STORAGE);
+    promptForAccessKey();
   }
 
   if (!res.ok) {
