@@ -7,3 +7,5 @@ __pycache__/
 .gstack/
 .vercel
 node_modules/
+dbs/
+backup/

@@ -63,7 +63,6 @@ const TOP_NAV = [
   { id: 'alice', label: 'Alice AI', iconKey: 'sparkle' },
   { id: 'cases', label: 'Cases', iconKey: 'folder' },
   { id: 'activity', label: 'Activity', iconKey: 'activity' },
-  { id: 'paises', label: 'Países', iconKey: 'globe' },
 ];
 
 /* Categorized tools */
@@ -71,38 +70,38 @@ const SECTIONS = [
   {
     label: 'Intel',
     items: [
-      { id: 'web-databases', label: 'Web Databases', iconKey: 'database', desc: 'Search breach and leak databases across multiple sources', placeholder: 'Enter email, username, phone, or password...' },
-      { id: 'background-check', label: 'Background Check', iconKey: 'shield', desc: 'Run a comprehensive background report on a person', placeholder: 'Enter full name...' },
-      { id: 'reverse-face-search', label: 'Reverse Face Search', iconKey: 'scan', desc: 'Find matches for a face across social profiles and the open web', placeholder: 'Upload a photo to search...' },
-      { id: 'image-geolocation', label: 'Image Geolocation', iconKey: 'pin', desc: 'Estimate where a photo was taken using Alice AI', placeholder: 'Upload an image to geolocate...', inputType: 'file' },
-      { id: 'gmail-lookup', label: 'Gmail Lookup', iconKey: 'mail', desc: 'Check Gmail account details and linked activity', placeholder: 'Enter a Gmail address...' },
-      { id: 'email-osint', label: 'Email OSINT', iconKey: 'mail', desc: 'Breaches, linked accounts, and Google profile for an email — merged Mail OSINT + Email Search', placeholder: 'Enter an email address...' },
-      { id: 'hudson-rock', label: 'Hudson Rock', iconKey: 'bug', desc: 'Search infostealer malware logs for exposed credentials', placeholder: 'Enter email, username, or domain...' },
+      { id: 'web-databases', label: 'Web Databases', iconKey: 'database', desc: 'Search breach and leak databases across multiple sources', placeholder: 'Enter email, username, phone, or password...', credits: 1 },
+      { id: 'background-check', label: 'Background Check', iconKey: 'shield', desc: 'Run a comprehensive background report on a person', placeholder: 'Enter full name...', credits: 5 },
+      { id: 'reverse-face-search', label: 'Reverse Face Search', iconKey: 'scan', desc: 'Find matches for a face across social profiles and the open web', placeholder: 'Upload a photo to search...', credits: 5 },
+      { id: 'image-geolocation', label: 'Image Geolocation', iconKey: 'pin', desc: 'Estimate where a photo was taken using Alice AI', placeholder: 'Upload an image to geolocate...', credits: 3, inputType: 'file' },
+      { id: 'gmail-lookup', label: 'Gmail Lookup', iconKey: 'mail', desc: 'Check Gmail account details and linked activity', placeholder: 'Enter a Gmail address...', credits: 1 },
+      { id: 'email-osint', label: 'Email OSINT', iconKey: 'mail', desc: 'Breaches, linked accounts, and Google profile for an email — merged Mail OSINT + Email Search', placeholder: 'Enter an email address...', credits: 1 },
+      { id: 'hudson-rock', label: 'Hudson Rock', iconKey: 'bug', desc: 'Search infostealer malware logs for exposed credentials', placeholder: 'Enter email, username, or domain...', credits: 2 },
     ],
   },
   {
     label: 'General Search',
     items: [
-      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, location, and owner info for a phone number', placeholder: 'Enter phone number...' },
-      { id: 'address-search', label: 'Address Search', iconKey: 'house', desc: 'Find residents and property history for an address', placeholder: 'Enter a street address...' },
-      { id: 'person-search', label: 'Person Search', iconKey: 'user', desc: 'Build out a full identity profile', placeholder: 'Enter full name...' },
-      { id: 'court-records', label: 'Court Records', iconKey: 'gavel', desc: 'Search court and criminal records', placeholder: 'Enter full name...' },
+      { id: 'phone-search', label: 'Phone Search', iconKey: 'phone', desc: 'Lookup carrier, location, and owner info for a phone number', placeholder: 'Enter phone number...', credits: 1 },
+      { id: 'address-search', label: 'Address Search', iconKey: 'house', desc: 'Find residents and property history for an address', placeholder: 'Enter a street address...', credits: 1 },
+      { id: 'person-search', label: 'Person Search', iconKey: 'user', desc: 'Build out a full identity profile', placeholder: 'Enter full name...', credits: 2 },
+      { id: 'court-records', label: 'Court Records', iconKey: 'gavel', desc: 'Search court and criminal records', placeholder: 'Enter full name...', credits: 2 },
     ],
   },
   {
     label: 'Infrastructure',
     items: [
-      { id: 'cell-tower', label: 'Cell Tower', iconKey: 'tower', desc: 'Lookup cell tower location data', placeholder: 'Enter cell tower ID or coordinates...' },
-      { id: 'ip-info', label: 'IP Info', iconKey: 'globe', desc: 'Geolocation, ISP, and network details for an IP', placeholder: 'Enter an IP address...' },
-      { id: 'whois', label: 'Whois', iconKey: 'info', desc: 'Domain registration and ownership info', placeholder: 'Enter a domain...' },
-      { id: 'dns-recon', label: 'DNS Recon', iconKey: 'server', desc: 'DNS records, subdomains, and mail servers', placeholder: 'Enter a domain...' },
-      { id: 'shodan', label: 'Shodan', iconKey: 'radar', desc: 'Open ports, banners, and exposed services', placeholder: 'Enter an IP or domain...' },
-      { id: 'certificate-lookup', label: 'Certificate Lookup', iconKey: 'award', desc: 'SSL/TLS certificate history for a domain', placeholder: 'Enter a domain...' },
-      { id: 'wayback-machine', label: 'Wayback Machine', iconKey: 'history', desc: 'Browse archived snapshots of a webpage', placeholder: 'Enter a URL...' },
-      { id: 'wifi-network-map', label: 'Wi-Fi Network Map', iconKey: 'wifi', desc: 'Map Wi-Fi networks by location', placeholder: 'Enter an SSID or BSSID...' },
-      { id: 'location-to-bssid', label: 'Location to BSSID', iconKey: 'pin', desc: 'Find nearby Wi-Fi access points for a location', placeholder: 'Enter coordinates...' },
-      { id: 'virustotal', label: 'VirusTotal', iconKey: 'shield', desc: 'Malware and threat intelligence lookup', placeholder: 'Enter a file hash, IP, domain, or URL...' },
-      { id: 'virustotal-content-search', label: 'VirusTotal Content Search', iconKey: 'search', desc: "Search VirusTotal's indexed file corpus", placeholder: 'Enter a search query...' },
+      { id: 'cell-tower', label: 'Cell Tower', iconKey: 'tower', desc: 'Lookup cell tower location data', placeholder: 'Enter cell tower ID or coordinates...', credits: 1 },
+      { id: 'ip-info', label: 'IP Info', iconKey: 'globe', desc: 'Geolocation, ISP, and network details for an IP', placeholder: 'Enter an IP address...', credits: 1 },
+      { id: 'whois', label: 'Whois', iconKey: 'info', desc: 'Domain registration and ownership info', placeholder: 'Enter a domain...', credits: 1 },
+      { id: 'dns-recon', label: 'DNS Recon', iconKey: 'server', desc: 'DNS records, subdomains, and mail servers', placeholder: 'Enter a domain...', credits: 1 },
+      { id: 'shodan', label: 'Shodan', iconKey: 'radar', desc: 'Open ports, banners, and exposed services', placeholder: 'Enter an IP or domain...', credits: 1 },
+      { id: 'certificate-lookup', label: 'Certificate Lookup', iconKey: 'award', desc: 'SSL/TLS certificate history for a domain', placeholder: 'Enter a domain...', credits: 1 },
+      { id: 'wayback-machine', label: 'Wayback Machine', iconKey: 'history', desc: 'Browse archived snapshots of a webpage', placeholder: 'Enter a URL...', credits: 1 },
+      { id: 'wifi-network-map', label: 'Wi-Fi Network Map', iconKey: 'wifi', desc: 'Map Wi-Fi networks by location', placeholder: 'Enter an SSID or BSSID...', credits: 1 },
+      { id: 'location-to-bssid', label: 'Location to BSSID', iconKey: 'pin', desc: 'Find nearby Wi-Fi access points for a location', placeholder: 'Enter coordinates...', credits: 1 },
+      { id: 'virustotal', label: 'VirusTotal', iconKey: 'shield', desc: 'Malware and threat intelligence lookup', placeholder: 'Enter a file hash, IP, domain, or URL...', credits: 1 },
+      { id: 'virustotal-content-search', label: 'VirusTotal Content Search', iconKey: 'search', desc: "Search VirusTotal's indexed file corpus", placeholder: 'Enter a search query...', credits: 2 },
     ],
   },
   {
@@ -111,102 +110,35 @@ const SECTIONS = [
        were removed. */
     label: 'Social',
     items: [
-      { id: 'usernames', label: 'Usernames', iconKey: 'target', desc: 'Check a username across 40+ platforms', placeholder: 'Enter a username...' },
-      { id: 'github', label: 'GitHub', iconKey: 'github', desc: 'Search GitHub users for profile and repo info', placeholder: 'Enter a GitHub username...' },
-      { id: 'roblox', label: 'Roblox', iconKey: 'flag', desc: 'Search Roblox users for profile info', placeholder: 'Enter a Roblox username or ID...' },
-      { id: 'discord', label: 'Discord', iconKey: 'discord', desc: 'Search Discord users for profile and server info', placeholder: 'Enter Discord user ID...' },
-      { id: 'tiktok', label: 'TikTok', iconKey: 'music', desc: 'Search TikTok users for profile info', placeholder: 'Enter a TikTok username...' },
-      { id: 'xbox', label: 'Xbox', iconKey: 'xbox', desc: 'Search Xbox Live profiles', placeholder: 'Enter a gamertag...' },
-      { id: 'playstation', label: 'PlayStation', iconKey: 'playstation', desc: 'Search PlayStation Network profiles', placeholder: 'Enter a PSN ID...' },
-      { id: 'epic-games', label: 'Epic Games', iconKey: 'epic', desc: 'Search Epic Games / Fortnite profiles', placeholder: 'Enter an Epic Games username...' },
+      { id: 'usernames', label: 'Usernames', iconKey: 'target', desc: 'Check a username across 40+ platforms', placeholder: 'Enter a username...', credits: 1 },
+      { id: 'github', label: 'GitHub', iconKey: 'github', desc: 'Search GitHub users for profile and repo info', placeholder: 'Enter a GitHub username...', credits: 1 },
+      { id: 'roblox', label: 'Roblox', iconKey: 'flag', desc: 'Search Roblox users for profile info', placeholder: 'Enter a Roblox username or ID...', credits: 1 },
+      { id: 'discord', label: 'Discord', iconKey: 'discord', desc: 'Search Discord users for profile and server info', placeholder: 'Enter Discord user ID...', credits: 1 },
+      { id: 'tiktok', label: 'TikTok', iconKey: 'music', desc: 'Search TikTok users for profile info', placeholder: 'Enter a TikTok username...', credits: 1 },
+      { id: 'xbox', label: 'Xbox', iconKey: 'xbox', desc: 'Search Xbox Live profiles', placeholder: 'Enter a gamertag...', credits: 1 },
+      { id: 'playstation', label: 'PlayStation', iconKey: 'playstation', desc: 'Search PlayStation Network profiles', placeholder: 'Enter a PSN ID...', credits: 1 },
+      { id: 'epic-games', label: 'Epic Games', iconKey: 'epic', desc: 'Search Epic Games / Fortnite profiles', placeholder: 'Enter an Epic Games username...', credits: 1 },
     ],
   },
   {
     label: 'Tools',
     items: [
-      { id: 'app-store-search', label: 'App Store Search', iconKey: 'apps', desc: 'Search iOS/Android app store listings', placeholder: 'Enter an app name or developer...' },
-      { id: 'link-resolver', label: 'Link Resolver', iconKey: 'link', desc: 'Resolve shortened/redirected links, check for phishing, and view encoded/decoded forms', placeholder: 'Enter a shortened URL...' },
-      { id: 'crypto-address-analyzer', label: 'Crypto Address Analyzer', iconKey: 'coin', desc: 'Analyze cryptocurrency wallet activity', placeholder: 'Enter a wallet address...' },
-      { id: 'double-counter-bypass', label: 'Double Counter Bypass', iconKey: 'copy', desc: 'Bypass duplicate-check protections', placeholder: 'Enter a username or ID...' },
-      { id: 'discord-alt-identifier', label: 'Discord Alt Identifier', iconKey: 'discord', desc: 'Detect linked and alt Discord accounts', placeholder: 'Enter a Discord user ID...' },
-      { id: 'roblox-profile-scraper', label: 'Roblox Profile Scraper', iconKey: 'flag', desc: 'Scrape full Roblox profile data', placeholder: 'Enter a Roblox username or ID...' },
-      { id: 'intelx-downloader', label: 'IntelX Downloader', iconKey: 'download', desc: 'Download files found via IntelX search', placeholder: 'Enter an IntelX result URL...' },
-      { id: 'virustotal-downloader', label: 'VirusTotal Downloader', iconKey: 'download', desc: 'Download samples from VirusTotal', placeholder: 'Enter a file hash...' },
+      { id: 'app-store-search', label: 'App Store Search', iconKey: 'apps', desc: 'Search iOS/Android app store listings', placeholder: 'Enter an app name or developer...', credits: 1 },
+      { id: 'link-resolver', label: 'Link Resolver', iconKey: 'link', desc: 'Resolve shortened/redirected links, check for phishing, and view encoded/decoded forms', placeholder: 'Enter a shortened URL...', credits: 1 },
+      { id: 'crypto-address-analyzer', label: 'Crypto Address Analyzer', iconKey: 'coin', desc: 'Analyze cryptocurrency wallet activity', placeholder: 'Enter a wallet address...', credits: 2 },
+      { id: 'double-counter-bypass', label: 'Double Counter Bypass', iconKey: 'copy', desc: 'Bypass duplicate-check protections', placeholder: 'Enter a username or ID...', credits: 1 },
+      { id: 'discord-alt-identifier', label: 'Discord Alt Identifier', iconKey: 'discord', desc: 'Detect linked and alt Discord accounts', placeholder: 'Enter a Discord user ID...', credits: 2 },
+      { id: 'roblox-profile-scraper', label: 'Roblox Profile Scraper', iconKey: 'flag', desc: 'Scrape full Roblox profile data', placeholder: 'Enter a Roblox username or ID...', credits: 1 },
+      { id: 'intelx-downloader', label: 'IntelX Downloader', iconKey: 'download', desc: 'Download files found via IntelX search', placeholder: 'Enter an IntelX result URL...', credits: 3 },
+      { id: 'virustotal-downloader', label: 'VirusTotal Downloader', iconKey: 'download', desc: 'Download samples from VirusTotal', placeholder: 'Enter a file hash...', credits: 2 },
     ],
   },
-];
-
-/* Países — collapsible module. Each entry's desc/placeholder reflects
-   that country's real national ID authority and document. */
-const COUNTRY_ITEMS = [
-  { id: 'country-af', label: '🇦🇫 Afganistán', iconKey: 'idcard', desc: 'ACCRA — Tazkira (documento nacional de identidad)', placeholder: 'Ingresa el número de Tazkira...' },
-  { id: 'country-al', label: '🇦🇱 Albania', iconKey: 'idcard', desc: 'Dirección General del Estado Civil — Letërnjoftim (ID electrónico)', placeholder: 'Ingresa el número de Letërnjoftim...' },
-  { id: 'country-de', label: '🇩🇪 Alemania', iconKey: 'idcard', desc: 'Ministerio del Interior (BMI) — Personalausweis', placeholder: 'Ingresa el número de Personalausweis...' },
-  { id: 'country-ao', label: '🇦🇴 Angola', iconKey: 'idcard', desc: 'Dirección Nacional de Identificación Civil — Bilhete de Identidade (BI)', placeholder: 'Ingresa el número de BI...' },
-  { id: 'country-sa', label: '🇸🇦 Arabia Saudita', iconKey: 'idcard', desc: 'Ministerio del Interior (Absher) — Tarjeta de Identidad Nacional (Hawiya)', placeholder: 'Ingresa el número de Hawiya...' },
-  { id: 'country-dz', label: '🇩🇿 Argelia', iconKey: 'idcard', desc: 'DGSN — Cédula Nacional de Identidad Biométrica', placeholder: 'Ingresa el número de cédula...' },
-  { id: 'country-ar', label: '🇦🇷 Argentina', iconKey: 'idcard', desc: 'RENAPER — Documento Nacional de Identidad (DNI)', placeholder: 'Ingresa el número de DNI...' },
-  { id: 'country-at', label: '🇦🇹 Austria', iconKey: 'idcard', desc: 'Ministerio del Interior (BMI) — Personalausweis', placeholder: 'Ingresa el número de Personalausweis...' },
-  { id: 'country-az', label: '🇦🇿 Azerbaiyán', iconKey: 'idcard', desc: 'Servicio Estatal de Migración (ASAN) — Şəxsiyyət Vəsiqəsi', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-bd', label: '🇧🇩 Bangladés', iconKey: 'idcard', desc: 'Comisión Electoral — Tarjeta de Identidad Nacional (NID)', placeholder: 'Ingresa el número de NID...' },
-  { id: 'country-bh', label: '🇧🇭 Baréin', iconKey: 'idcard', desc: 'Central Population Registry (CPR) — Tarjeta de Identidad', placeholder: 'Ingresa el número de CPR...' },
-  { id: 'country-be', label: '🇧🇪 Bélgica', iconKey: 'idcard', desc: 'Registro Nacional — eID (Cédula Electrónica Belga)', placeholder: 'Ingresa el número de eID...' },
-  { id: 'country-by', label: '🇧🇾 Bielorrusia', iconKey: 'idcard', desc: 'Ministerio del Interior (MVD) — Tarjeta de Identidad Biométrica', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-bo', label: '🇧🇴 Bolivia', iconKey: 'idcard', desc: 'SEGIP — Cédula de Identidad', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-bw', label: '🇧🇼 Botsuana', iconKey: 'idcard', desc: 'DCNR — Omang', placeholder: 'Ingresa el número de Omang...' },
-  { id: 'country-br', label: '🇧🇷 Brasil', iconKey: 'idcard', desc: 'Receita Federal / SSP — CPF y RG (Registro Geral)', placeholder: 'Digite o CPF ou RG...' },
-  { id: 'country-ca', label: '🇨🇦 Canadá', iconKey: 'idcard', desc: 'Service Canada — Social Insurance Number (SIN)', placeholder: 'Ingresa el número de SIN...' },
-  { id: 'country-qa', label: '🇶🇦 Catar', iconKey: 'idcard', desc: 'Ministerio del Interior — Qatar ID (QID)', placeholder: 'Ingresa el número de QID...' },
-  { id: 'country-cl', label: '🇨🇱 Chile', iconKey: 'idcard', desc: 'Registro Civil — Rol Único Nacional (RUN/RUT)', placeholder: 'Ingresa el RUN...' },
-  { id: 'country-cn', label: '🇨🇳 China', iconKey: 'idcard', desc: 'Ministerio de Seguridad Pública — Documento de Identidad de Residente (居民身份证)', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-co', label: '🇨🇴 Colombia', iconKey: 'idcard', desc: 'Registraduría Nacional — Cédula de Ciudadanía (CC)', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-kr', label: '🇰🇷 Corea del Sur', iconKey: 'idcard', desc: 'Ministerio del Interior y Seguridad — Número de Registro de Residente (RRN)', placeholder: 'Ingresa el número de RRN...' },
-  { id: 'country-sv', label: '🇸🇻 El Salvador', iconKey: 'idcard', desc: 'RNPN — Documento Único de Identidad (DUI)', placeholder: 'Ingresa el número de DUI...' },
-  { id: 'country-es', label: '🇪🇸 España', iconKey: 'idcard', desc: 'Dirección General de la Policía — DNI', placeholder: 'Ingresa el número de DNI...' },
-  { id: 'country-us', label: '🇺🇸 Estados Unidos', iconKey: 'idcard', desc: 'Social Security Administration — Social Security Number (SSN)', placeholder: 'Enter SSN...' },
-  { id: 'country-ph', label: '🇵🇭 Filipinas', iconKey: 'idcard', desc: 'PSA — PhilID (PhilSys)', placeholder: 'Ingresa el número de PhilID...' },
-  { id: 'country-fr', label: '🇫🇷 Francia', iconKey: 'idcard', desc: 'ANTS — Carte Nationale d’Identité (CNI)', placeholder: 'Ingresa el número de CNI...' },
-  { id: 'country-gr', label: '🇬🇷 Grecia', iconKey: 'idcard', desc: 'Policía Helénica — Δελτίο Ταυτότητας (documento de identidad)', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-in', label: '🇮🇳 India', iconKey: 'idcard', desc: 'UIDAI — Aadhaar', placeholder: 'Ingresa el número de Aadhaar...' },
-  { id: 'country-ir', label: '🇮🇷 Irán', iconKey: 'idcard', desc: 'Organización Nacional de Registro Civil — Código Nacional (Kart-e Melli)', placeholder: 'Ingresa el código nacional...' },
-  { id: 'country-il', label: '🇮🇱 Israel', iconKey: 'idcard', desc: 'Ministerio del Interior — Teudat Zehut', placeholder: 'Ingresa el número de Teudat Zehut...' },
-  { id: 'country-it', label: '🇮🇹 Italia', iconKey: 'idcard', desc: 'Ministerio del Interior — Carta d’Identità Elettronica (CIE)', placeholder: 'Ingresa el número de CIE...' },
-  { id: 'country-jp', label: '🇯🇵 Japón', iconKey: 'idcard', desc: 'J-LIS — My Number Card', placeholder: 'Ingresa el My Number...' },
-  { id: 'country-my', label: '🇲🇾 Malasia', iconKey: 'idcard', desc: 'Jabatan Pendaftaran Negara (JPN) — MyKad', placeholder: 'Ingresa el número de MyKad...' },
-  { id: 'country-ma', label: '🇲🇦 Marruecos', iconKey: 'idcard', desc: 'DGSN — CNIE (Cédula Nacional de Identidad Electrónica)', placeholder: 'Ingresa el número de CNIE...' },
-  { id: 'country-mx', label: '🇲🇽 México', iconKey: 'idcard', desc: 'RENAPO — Clave Única de Registro de Población (CURP)', placeholder: 'Ingresa la CURP...' },
-  { id: 'country-na', label: '🇳🇦 Namibia', iconKey: 'idcard', desc: 'Ministerio del Interior — Documento Nacional de Identidad', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-ng', label: '🇳🇬 Nigeria', iconKey: 'idcard', desc: 'NIMC — Número de Identificación Nacional (NIN)', placeholder: 'Ingresa el número de NIN...' },
-  { id: 'country-no', label: '🇳🇴 Noruega', iconKey: 'idcard', desc: 'Skatteetaten — Fødselsnummer', placeholder: 'Ingresa el Fødselsnummer...' },
-  { id: 'country-om', label: '🇴🇲 Omán', iconKey: 'idcard', desc: 'Royal Oman Police — Tarjeta de Identidad Civil', placeholder: 'Ingresa el número de identidad civil...' },
-  { id: 'country-nl', label: '🇳🇱 Países Bajos', iconKey: 'idcard', desc: 'RvIG — BSN / Cédula de Identidad Neerlandesa', placeholder: 'Ingresa el BSN...' },
-  { id: 'country-pk', label: '🇵🇰 Pakistán', iconKey: 'idcard', desc: 'NADRA — CNIC (Computerized National Identity Card)', placeholder: 'Ingresa el número de CNIC...' },
-  { id: 'country-ps', label: '🇵🇸 Palestina', iconKey: 'idcard', desc: 'Ministerio del Interior (ANP) — Hawiya Palestina', placeholder: 'Ingresa el número de Hawiya...' },
-  { id: 'country-pa', label: '🇵🇦 Panamá', iconKey: 'idcard', desc: 'Tribunal Electoral — Cédula de Identidad Personal', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-py', label: '🇵🇾 Paraguay', iconKey: 'idcard', desc: 'Policía Nacional — Cédula de Identidad Civil', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-pe', label: '🇵🇪 Perú', iconKey: 'idcard', desc: 'RENIEC — Documento Nacional de Identidad (DNI)', placeholder: 'Ingresa el número de DNI...' },
-  { id: 'country-pt', label: '🇵🇹 Portugal', iconKey: 'idcard', desc: 'IRN — Cartão de Cidadão', placeholder: 'Ingresa el número de Cartão de Cidadão...' },
-  { id: 'country-pr', label: '🇵🇷 Puerto Rico', iconKey: 'idcard', desc: 'DTOP — Licencia REAL ID / Certificado de Nacimiento de PR', placeholder: 'Ingresa el número de documento...' },
-  { id: 'country-gb', label: '🇬🇧 Reino Unido', iconKey: 'idcard', desc: 'DWP / HMRC — National Insurance Number (NINo)', placeholder: 'Enter National Insurance Number...' },
-  { id: 'country-do', label: '🇩🇴 República Dominicana', iconKey: 'idcard', desc: 'JCE — Cédula de Identidad y Electoral', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-ru', label: '🇷🇺 Rusia', iconKey: 'idcard', desc: 'Ministerio del Interior (MVD) — Pasaporte Interno', placeholder: 'Ingresa el número de pasaporte interno...' },
-  { id: 'country-rs', label: '🇷🇸 Serbia', iconKey: 'idcard', desc: 'MUP — JMBG / Lična Karta', placeholder: 'Ingresa el número de JMBG...' },
-  { id: 'country-sg', label: '🇸🇬 Singapur', iconKey: 'idcard', desc: 'ICA — NRIC (National Registration Identity Card)', placeholder: 'Ingresa el número de NRIC...' },
-  { id: 'country-za', label: '🇿🇦 Sudáfrica', iconKey: 'idcard', desc: 'Department of Home Affairs — Número de Identidad Sudafricano (13 dígitos)', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-sd', label: '🇸🇩 Sudán', iconKey: 'idcard', desc: 'Registro Civil — Número Nacional de Identidad', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-se', label: '🇸🇪 Suecia', iconKey: 'idcard', desc: 'Skatteverket — Personnummer', placeholder: 'Ingresa el Personnummer...' },
-  { id: 'country-ch', label: '🇨🇭 Suiza', iconKey: 'idcard', desc: 'Oficina Federal de Policía (fedpol) — Tarjeta de Identidad Suiza', placeholder: 'Ingresa el número de identidad...' },
-  { id: 'country-tr', label: '🇹🇷 Turquía', iconKey: 'idcard', desc: 'Dirección General de Población — T.C. Kimlik No', placeholder: 'Ingresa el T.C. Kimlik No...' },
-  { id: 'country-ua', label: '🇺🇦 Ucrania', iconKey: 'idcard', desc: 'Servicio Estatal de Migración — Pasaporte / Tarjeta de Identidad', placeholder: 'Ingresa el número de documento...' },
-  { id: 'country-uy', label: '🇺🇾 Uruguay', iconKey: 'idcard', desc: 'DNIC — Cédula de Identidad', placeholder: 'Ingresa el número de Cédula...' },
-  { id: 'country-vn', label: '🇻🇳 Vietnam', iconKey: 'idcard', desc: 'Ministerio de Seguridad Pública — CCCD (Tarjeta de Identidad Ciudadana)', placeholder: 'Ingresa el número de CCCD...' },
 ];
 
 /* Build lookups */
 const TOOL_BY_ID = {};
 SECTIONS.forEach(s => s.items.forEach(i => { TOOL_BY_ID[i.id] = i; }));
 TOP_NAV.forEach(i => { TOOL_BY_ID[i.id] = i; });
-COUNTRY_ITEMS.forEach(i => { TOOL_BY_ID[i.id] = i; });
 
 function buildSidebar() {
   const nav = document.getElementById('navList');
@@ -247,7 +179,6 @@ function selectTool(id) {
   else if (id === 'alice') { main.innerHTML = renderAliceChat(); mountAliceChat(); }
   else if (id === 'cases') { main.innerHTML = renderCases(); }
   else if (id === 'activity') { main.innerHTML = renderActivity(); }
-  else if (id === 'paises') { main.innerHTML = renderCountries(); }
   else {
     const tool = TOOL_BY_ID[id];
     main.innerHTML = renderTool(tool);
@@ -262,6 +193,7 @@ function selectTool(id) {
 
 function renderTool(tool) {
   const live = window.LIVE_HANDLERS && window.LIVE_HANDLERS[tool.id];
+  console.log('renderTool:', tool.id, 'live:', !!live, 'LIVE_HANDLERS keys:', window.LIVE_HANDLERS ? Object.keys(window.LIVE_HANDLERS) : 'undefined');
 
   return `
   <div class="max-w-5xl mx-auto px-8 py-8">
@@ -304,8 +236,8 @@ function renderTool(tool) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-600 shrink-0"><path d="M7 10l5-5 5 5M7 14l5 5 5-5"/></svg>
       </div>`}
       <button id="toolSearchBtn" class="px-5 py-3 rounded-xl bg-primary-600 hover:bg-primary-500 font-medium text-sm flex items-center gap-2 transition-colors shrink-0 disabled:opacity-50">
-        ${icon('search', 'width="14" height="14"')}
-        <span id="toolSearchBtnLabel">Search</span>
+        ${live ? icon('search', 'width="14" height="14"') : icon('coin')}
+        <span id="toolSearchBtnLabel">${live ? 'Search' : (tool.credits > 0 ? tool.credits + ' credit' + (tool.credits > 1 ? 's' : '') : 'Free')}</span>
       </button>
     </div>
 
@@ -397,41 +329,9 @@ function errorBlock(title, detail) {
     </div>`;
 }
 
-function renderCountries() {
-  if (!COUNTRY_ITEMS.length) {
-    return `
-    <div class="max-w-5xl mx-auto px-8 py-8">
-      <h1 class="text-2xl font-semibold mb-1">Países</h1>
-      <p class="text-sm text-gray-500 mb-8">Elige un país para buscar por su documento de identidad.</p>
-      <div class="rounded-2xl border border-white/10 py-24 flex flex-col items-center justify-center gap-3 text-center">
-        <div class="tool-empty-icon">${icon('globe', 'width="22" height="22"')}</div>
-        <p class="font-semibold">Aún no hay países</p>
-        <p class="text-sm text-gray-500">Dime cuáles agregar y los sumo con su tipo de documento.</p>
-      </div>
-    </div>`;
-  }
-
-  return `
-  <div class="max-w-6xl mx-auto px-8 py-8">
-    <h1 class="text-2xl font-semibold mb-1">Países</h1>
-    <p class="text-sm text-gray-500 mb-8">Elige un país para buscar por su documento de identidad.</p>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      ${COUNTRY_ITEMS.map(c => `
-        <button data-id="${c.id}" class="country-card card p-5 text-left flex flex-col gap-4 aspect-square">
-          <span class="text-4xl leading-none">${c.label.split(' ')[0]}</span>
-          <div>
-            <p class="font-semibold text-sm mb-1">${c.label.replace(/^\S+\s/, '')}</p>
-            <p class="text-[11px] text-gray-500 leading-snug">${c.desc}</p>
-          </div>
-        </button>
-      `).join('')}
-    </div>
-  </div>`;
-}
-
 function renderDashboard() {
   const stats = [
-    { label: 'Tools available', value: String(Object.keys(TOOL_BY_ID).length), iconKey: 'search' },
+    { label: 'Credits remaining', value: '0', iconKey: 'coin' },
     { label: 'Searches this month', value: '0', iconKey: 'search' },
     { label: 'Active cases', value: '0', iconKey: 'folder' },
     { label: 'Saved results', value: '0', iconKey: 'database' },
@@ -623,72 +523,6 @@ function newCase() {
     notes: [{ id: noteId, title: 'Untitled', tags: [], content: '' }],
   });
   openCase(id);
-}
-
-/* ---- Alice AI integration -------------------------------------------
-   Alice (js/alice-chat.js) can open a case conversationally and keep
-   feeding it findings as the chat goes on. It never touches the tool
-   modules or the manual graph-search bar — those are unaffected. It
-   only ever creates a case here and grows it with the same hub+satellite
-   shape the manual "graph search" bar already produces, so a case built
-   from a chat looks and behaves identically to one built by hand. Starts
-   with zero notes (no "Untitled" placeholder) since the first note is
-   the actual finding, added right after via addAliceFindingToCase(). */
-function createCaseFromAlice(name) {
-  const id = 'case-' + Date.now();
-  CASES.push({ id, name: (name || 'Caso sin título').slice(0, 60), updated: 'Updated just now', notes: [] });
-  return id;
-}
-
-/* Data-only version of the graph search bar's fan-out (see
-   runGraphSearch() inside initGraph): queries every live module for
-   `query`, and merges whatever answers into a hub note (the query
-   itself) with one satellite note per module that found something,
-   cross-linked with [[wikilinks]]. Deliberately does NOT touch the
-   canvas/nodes arrays — those only exist while the Graph tab is mounted,
-   and Alice may add findings to a case the user isn't currently looking
-   at. Whenever the user opens Cases → that case → Graph, initGraph()
-   rebuilds its nodes straight from c.notes, so these show up there too. */
-async function addAliceFindingToCase(caseId, query) {
-  const c = CASES.find(x => x.id === caseId);
-  if (!c || !query) return 0;
-
-  const toolIds = Object.keys(window.LIVE_HANDLERS || {});
-  if (!toolIds.length) return 0;
-  const withTimeout = (p) => Promise.race([
-    p,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000)),
-  ]);
-  const settled = await Promise.allSettled(toolIds.map(id => withTimeout(fetchGraphToolItems(id, query))));
-  const results = [];
-  settled.forEach(res => { if (res.status === 'fulfilled') results.push(...res.value); });
-  if (!results.length) return 0;
-
-  let hub = findNoteByTitle(c, query);
-  if (!hub) {
-    hub = { id: 'n-' + Date.now(), title: query, tags: ['found', TOOL_TAG[primaryToolForQuery(query)] || 'default'], content: `Punto de partida: **${query}**` };
-    c.notes.push(hub);
-  }
-
-  const stamp = new Date().toLocaleTimeString();
-  results.forEach((r, idx) => {
-    const satTitle = `${query} — ${r.toolLabel}`;
-    let sat = findNoteByTitle(c, satTitle);
-    if (!sat) {
-      sat = { id: `n-${Date.now()}-${idx}`, title: satTitle, tags: ['found', TOOL_TAG[r.toolId] || 'default'], content: '' };
-      c.notes.push(sat);
-    }
-    sat.content = (sat.content ? sat.content + '\n\n---\n\n' : '') + `**${r.toolLabel}** — ${stamp}\n${r.plain}`;
-    if (!parseLinks(sat.content).some(l => l.toLowerCase() === hub.title.toLowerCase())) {
-      sat.content += `\n\nRelacionado con [[${hub.title}]].`;
-    }
-    if (!parseLinks(hub.content).some(l => l.toLowerCase() === sat.title.toLowerCase())) {
-      hub.content = (hub.content ? hub.content + '\n\n' : '') + `[[${sat.title}]]`;
-    }
-  });
-
-  c.updated = 'Updated just now';
-  return results.length;
 }
 
 function openCase(caseId) {
@@ -946,51 +780,6 @@ function initGraph(c) {
   }
   rebuildEdges();
 
-  /* Seeds a clean starting layout instead of fully-random placement, so
-     the physics sim only has to smooth out small overlaps instead of
-     untangling a random hairball — this is what actually makes a
-     hub-and-satellite case (the common shape here: one query note wired
-     to many finding notes, no finding-to-finding edges) come out looking
-     ordered instead of chaotic once there are a few dozen nodes.
-     1. Spread every hub (any node that isn't a single-edge leaf) around
-        the canvas center on a coarse ring.
-     2. Fan each hub's own leaves evenly around it on their own ring,
-        sized to the leaf count so they don't crowd. */
-  function seedRadialLayout() {
-    const neighborsOf = {};
-    edges.forEach(e => {
-      (neighborsOf[e.a] = neighborsOf[e.a] || []).push(e.b);
-      (neighborsOf[e.b] = neighborsOf[e.b] || []).push(e.a);
-    });
-
-    const hubs = nodes.filter(n => (neighborsOf[n.id] || []).length !== 1);
-    hubs.forEach((hub, i) => {
-      if (hubs.length === 1) { hub.x = w / 2; hub.y = h / 2; return; }
-      const angle = (2 * Math.PI * i) / hubs.length;
-      const ring = Math.min(w, h) * 0.22;
-      hub.x = w / 2 + Math.cos(angle) * ring;
-      hub.y = h / 2 + Math.sin(angle) * ring;
-    });
-
-    const leavesByHub = {};
-    nodes.forEach(n => {
-      const neighbors = neighborsOf[n.id] || [];
-      if (neighbors.length === 1) (leavesByHub[neighbors[0]] = leavesByHub[neighbors[0]] || []).push(n.id);
-    });
-    Object.entries(leavesByHub).forEach(([hubId, leafIds]) => {
-      const hub = nodeById[hubId];
-      if (!hub) return;
-      const ring = Math.max(150, 38 * Math.sqrt(leafIds.length));
-      leafIds.forEach((id, i) => {
-        const n = nodeById[id];
-        const angle = (2 * Math.PI * i) / leafIds.length;
-        n.x = hub.x + Math.cos(angle) * ring;
-        n.y = hub.y + Math.sin(angle) * ring;
-      });
-    });
-  }
-  seedRadialLayout();
-
   function simulate(iterations) {
     for (let iter = 0; iter < iterations; iter++) {
       for (let i = 0; i < nodes.length; i++) {
@@ -998,7 +787,7 @@ function initGraph(c) {
           const a = nodes[i], b = nodes[j];
           let dx = a.x - b.x, dy = a.y - b.y;
           const d = Math.hypot(dx, dy) || 0.01;
-          const force = 2800 / (d * d);
+          const force = 2200 / (d * d);
           dx /= d; dy /= d;
           a.vx += dx * force; a.vy += dy * force;
           b.vx -= dx * force; b.vy -= dy * force;
@@ -1009,7 +798,7 @@ function initGraph(c) {
         if (!a || !b) return;
         let dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.hypot(dx, dy) || 0.01;
-        const force = (d - 175) * 0.018;
+        const force = (d - 130) * 0.02;
         dx /= d; dy /= d;
         a.vx += dx * force; a.vy += dy * force;
         b.vx -= dx * force; b.vy -= dy * force;
@@ -1033,21 +822,7 @@ function initGraph(c) {
   function nodeRadius(n) {
     const active = n.id === workspace.noteId;
     const deg = degree[n.id] || 0;
-    return (active ? 10 : 7.5) + Math.min(deg, 6) * 1.3;
-  }
-
-  // Deterministic per-edge curve offset (not random-per-frame — draw() runs
-  // on every hover/drag, and re-rolling the bend each time would make the
-  // lines flicker/jitter instead of just looking gently curved).
-  const edgeBends = {};
-  function edgeBend(e) {
-    const key = e.a + '|' + e.b;
-    if (edgeBends[key] === undefined) {
-      let hash = 0;
-      for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-      edgeBends[key] = ((hash % 1000) / 1000 - 0.5) * 0.5;
-    }
-    return edgeBends[key];
+    return (active ? 9 : 6.5) + Math.min(deg, 6) * 1.1;
   }
 
   function draw() {
@@ -1062,13 +837,9 @@ function initGraph(c) {
       const dim = hoverNode && hoverNode.id !== a.id && hoverNode.id !== b.id;
       const bright = hoverNode && (hoverNode.id === a.id || hoverNode.id === b.id);
       ctx.strokeStyle = bright ? 'rgba(255,255,255,0.65)' : dim ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.28)';
-      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const bend = edgeBend(e);
-      const cx = mx - dy * bend, cy = my + dx * bend;
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+      ctx.lineTo(b.x, b.y);
       ctx.stroke();
     });
 
@@ -1329,9 +1100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (caseCard) { openCase(caseCard.dataset.case); return; }
 
     if (e.target.closest('#newCaseBtn') || e.target.closest('#newCaseBtn2')) { newCase(); return; }
-
-    const countryCard = e.target.closest('.country-card');
-    if (countryCard) { selectTool(countryCard.dataset.id); return; }
   });
 
   const collapseBtn = document.getElementById('collapseBtn');

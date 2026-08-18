@@ -98,6 +98,8 @@
     <div class="mt-6 flex items-center justify-center gap-3 text-[11px] tracking-wider text-gray-500 uppercase">
       <span>No subscription</span>
       <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+      <span>Credits never expire</span>
+      <span class="w-1 h-1 rounded-full bg-gray-600"></span>
       <span>Full API access</span>
     </div>
   </div>
@@ -417,7 +419,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
             <span class="text-sm">Permission required</span>
           </div>
-          <p class="text-[12px] text-gray-400 mb-3">Alice wants to run <span class="pill rounded px-1.5 py-0.5 text-primary-300">Username Search</span></p>
+          <p class="text-[12px] text-gray-400 mb-3">Alice wants to run <span class="pill rounded px-1.5 py-0.5 text-primary-300">Username Search</span> · 1 credit</p>
           <div class="flex items-center gap-2">
             <button class="px-3 py-1.5 rounded-lg bg-primary-600 text-xs font-medium flex items-center gap-1">✓ Allow</button>
             <button class="px-3 py-1.5 rounded-lg border border-white/15 text-xs font-medium flex items-center gap-1">✕ Deny</button>
@@ -652,28 +654,52 @@ console.<span class="fn">log</span>(result.data);
 <!-- ============ PRICING ============ -->
 <section id="pricing" class="py-24">
   <div class="max-w-3xl mx-auto px-6 text-center reveal">
-    <h2 class="text-3xl sm:text-4xl font-bold">Every tool, free to use</h2>
-    <p class="mt-4 text-gray-400">No subscriptions. No monthly fees. No hidden costs.</p>
+    <h2 class="text-3xl sm:text-4xl font-bold">Pay only for what you use</h2>
+    <p class="mt-4 text-gray-400">No subscriptions. No monthly fees. Just simple, transparent pricing.</p>
   </div>
 
   <div class="max-w-2xl mx-auto px-6 mt-12 reveal">
     <div class="card p-8">
       <div class="flex items-center justify-between mb-6">
-        <span class="text-gray-300">Access</span>
-        <span class="text-[10px] tracking-wider pill rounded-full px-3 py-1 text-gray-400 uppercase">Free</span>
+        <span class="text-gray-300">Credit pricing</span>
+        <span class="text-[10px] tracking-wider pill rounded-full px-3 py-1 text-gray-400 uppercase">Pay as you go</span>
       </div>
 
       <div class="flex items-end gap-2 mb-6">
-        <span class="text-5xl font-bold">$0</span>
-        <span class="text-gray-400 mb-1">forever</span>
+        <span class="text-5xl font-bold">$1</span>
+        <span class="text-gray-400 mb-1">per 10 credits</span>
       </div>
 
       <ul class="space-y-3 mb-8 text-sm">
-        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Every lookup included</li>
-        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> No usage limits</li>
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Most lookups cost 1 credit</li>
+        <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Credits never expire</li>
         <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> Full API access included</li>
         <li class="flex items-center gap-2 text-gray-300"><span class="text-primary-400">✓</span> No recurring charges</li>
       </ul>
+
+      <p class="text-[10px] tracking-wider text-gray-500 uppercase mb-3">Cost per tool</p>
+      <div class="scroll-x flex gap-3 overflow-x-auto pb-4 mb-6">
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">File Archive Search</p>
+          <p class="text-sm font-semibold text-primary-300">10 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">Cloud OSINT</p>
+          <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">Court Records</p>
+          <p class="text-sm font-semibold text-primary-300">2 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">Breach Search</p>
+          <p class="text-sm font-semibold text-primary-300">1 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+        <div class="shrink-0 w-28 rounded-xl border border-white/10 p-3 text-center">
+          <p class="text-[11px] text-gray-400 mb-2">DoubleCheck Bypass</p>
+          <p class="text-sm font-semibold text-primary-300">1 <span class="text-[10px] text-gray-500">cr</span></p>
+        </div>
+      </div>
 
       <button class="w-full py-3.5 rounded-xl bg-primary-600 hover:bg-primary-500 font-semibold flex items-center justify-center gap-2 transition-colors">Get started free <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
     </div>
@@ -683,12 +709,12 @@ console.<span class="fn">log</span>(result.data);
     <div class="card p-5">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><path d="M3 3l18 18M10 10a3 3 0 004 4M9.9 5A9 9 0 0121 12c-.3.6-.6 1.2-1 1.8M6 6a9 9 0 003 15"/></svg>
       <h3 class="font-semibold text-sm mb-1">No Subscriptions</h3>
-      <p class="text-xs text-gray-400">Use every tool whenever you need them, at no cost</p>
+      <p class="text-xs text-gray-400">Buy credits when you need them, use them whenever</p>
     </div>
     <div class="card p-5">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><path d="M18.2 6.4a5 5 0 000 11.2M5.8 6.4a5 5 0 000 11.2M9 12h6"/></svg>
-      <h3 class="font-semibold text-sm mb-1">No Usage Limits</h3>
-      <p class="text-xs text-gray-400">Run as many searches as your investigation needs</p>
+      <h3 class="font-semibold text-sm mb-1">Credits Never Expire</h3>
+      <p class="text-xs text-gray-400">Your credits stay in your account until you use them</p>
     </div>
     <div class="card p-5">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-primary-300 mb-3"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
