@@ -110,7 +110,7 @@ function mountAliceChat() {
     renderAliceBubble(messagesEl, 'assistant', '¡Hola! Soy Alice, tu asistente de investigación OSINT. ¿Cómo querés que te llame?');
     aliceAwaitingNickname = true;
   } else {
-    renderAliceBubble(messagesEl, 'assistant', `¡Hola de nuevo, ${nickname}! ¿En qué investigación te ayudo hoy?`);
+    renderAliceBubble(messagesEl, 'assistant', `¡Hola de nuevo, ${nickname}! ¿Qué necesitás?`);
     aliceAwaitingNickname = false;
   }
   messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -134,7 +134,7 @@ function mountAliceChat() {
       const nick = text.slice(0, 40);
       localStorage.setItem('abyssal_user_nickname', nick);
       aliceAwaitingNickname = false;
-      say(`Genial, ${nick}. ¿En qué investigación te ayudo hoy?`);
+      say(`Un gusto, ${nick}. Contame qué necesitás.`);
       return;
     }
 
@@ -205,10 +205,14 @@ function mountAliceChat() {
 
     try {
       const nick = localStorage.getItem('abyssal_user_nickname') || 'investigador';
+      // Prior turns only (aliceHistory already has this turn's user message
+      // pushed above) — lets Alice recall a topic opened a message or two
+      // ago instead of treating every message as a blank slate.
+      const priorHistory = aliceHistory.slice(0, -1).slice(-10);
       const res = await fetch('/api/alice/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Access-Key': getAccessKey() },
-        body: JSON.stringify({ nickname: nick, message: text }),
+        body: JSON.stringify({ nickname: nick, message: text, history: priorHistory }),
       });
       if (res.status === 401) {
         localStorage.removeItem(ACCESS_KEY_STORAGE);

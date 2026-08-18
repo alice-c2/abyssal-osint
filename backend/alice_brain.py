@@ -13,6 +13,7 @@ passive, always "go to the authorities") can never be talked out of
 itself the way a prompt-only guardrail on a real LLM sometimes can.
 """
 
+import random
 import re
 import unicodedata
 
@@ -113,14 +114,86 @@ CATEGORY_KEYWORDS = {
 # Safety: keywords that trigger passive-advice mode, and per-country
 # authorities. Agency names only — no phone numbers, those change and a
 # wrong one here would be worse than not giving one.
+#
+# Grouped by situation (not just a flat list) for two reasons: 1) so the
+# safety response can name the actual situation the user described instead
+# of a one-size-fits-all "extorsión, amenaza o acoso" every time, and
+# 2) so "secuestro"/"trata" (physical-danger-now categories) can put
+# "llamá a emergencias" ahead of "preservá evidencia" instead of after it.
+#
+# Keywords are short verb/noun STEMS, not exact words — "acoso" alone
+# doesn't match "me están acosando" (Spanish conjugates the o away), so
+# each stem is picked to cover the conjugated forms too (e.g. "acosa"
+# covers acosa/acosan/acosando/acosador/acosaron).
 # --------------------------------------------------------------------------
 
-DANGER_KEYWORDS = [
-    "pederast", "pedofil", "abuso sexual", "abusador", "grooming",
-    "trata de personas", "explotacion sexual", "explotacion infantil",
-    "extorsion", "chantaje", "acosador", "acoso", "stalker",
-    "amenaza", "secuestro", "trafico de personas", "pornografia infantil",
-]
+DANGER_CATEGORIES = {
+    "extorsión o chantaje": ["extorsion", "chantaje"],
+    "acoso o stalking": ["acosa", "stalker"],
+    "una amenaza": ["amenaza"],
+    "abuso o explotación sexual": ["pederast", "pedofil", "abuso sexual", "abusa", "grooming", "pornografia infantil", "explotacion sexual", "explotacion infantil"],
+    "secuestro o trata de personas": ["secuestr", "trata de personas", "trafico de personas"],
+}
+# Categories where the right first move is emergency contact, not evidence
+# preservation — physical safety takes priority over the investigation.
+IMMEDIATE_RISK_CATEGORIES = {"secuestro o trata de personas", "abuso o explotación sexual"}
+
+DANGER_KEYWORDS = [kw for kws in DANGER_CATEGORIES.values() for kw in kws]
+
+
+def _detect_danger_categories(text: str) -> list[str]:
+    return [label for label, kws in DANGER_CATEGORIES.items() if _contains_any(text, kws)]
+
+
+# --------------------------------------------------------------------------
+# Conversational memory for the danger flow — a person describing "me estan
+# acosando" is not a tool query, and the reply shouldn't reset to zero on
+# the next message either. The frontend sends prior turns (js/alice-chat.js
+# already keeps them for its own history panel); this only reads the last
+# few to answer two questions: "were we already talking about this?" and
+# "did they just mention a channel (Instagram, llamadas, etc.)?".
+# --------------------------------------------------------------------------
+
+CHANNEL_LABELS = {
+    "instagram": "Instagram", "whatsapp": "WhatsApp", "facebook": "Facebook",
+    "tiktok": "TikTok", "snapchat": "Snapchat", "telegram": "Telegram",
+    "twitter": "Twitter/X", "discord": "Discord",
+    "llamadas": "llamadas", "llamada": "llamadas", "telefono": "llamadas o mensajes de texto",
+    "correo": "correo", "email": "correo", "sms": "mensajes de texto",
+    "en persona": "en persona", "presencial": "en persona",
+}
+
+
+def _detect_channel(text: str) -> str | None:
+    for kw, label in CHANNEL_LABELS.items():
+        if kw in text:
+            return label
+    return None
+
+
+def resolve_danger_categories(message: str, history: list[dict] | None) -> list[str]:
+    """Categories for THIS turn — from the message itself, or (if the
+    message alone has none) recalled from a danger conversation opened in
+    the last few turns, so a short reply like "por Instagram" after "me
+    estan acosando" is understood as the same conversation instead of an
+    unrelated one-word message Alice can't parse."""
+    cats = _detect_danger_categories(_norm(message))
+    if cats:
+        return cats
+    for turn in reversed((history or [])[-6:]):
+        if turn.get("role") == "user":
+            prior = _detect_danger_categories(_norm(turn.get("content", "")))
+            if prior:
+                return prior
+    return []
+
+
+def _danger_topic_already_open(history: list[dict] | None) -> bool:
+    return any(
+        turn.get("role") == "user" and _detect_danger_categories(_norm(turn.get("content", "")))
+        for turn in (history or [])[-6:]
+    )
+
 
 COUNTRY_AUTHORITIES = {
     "peru": "la PNP - DIVINDAT (Division de Investigacion de Delitos de Alta Tecnologia)",
@@ -149,35 +222,190 @@ def _detect_country(text: str) -> str | None:
 
 
 # --------------------------------------------------------------------------
+# Extortion/threat risk scoring — explainable, not a black box: every
+# factor that adds to the score is a phrase you can point at in the
+# message. Phrase-level (not single-word) matches on purpose — precision
+# over recall, since a wrong "CRÍTICO" is worse than a missed "MODERADO".
+# --------------------------------------------------------------------------
+
+_URGENCY_RE = re.compile(r"\b\d{1,3}\s*(hora|horas|dia|dias|minuto|minutos)\b")
+_URGENCY_WORDS = ["ahora mismo", "ya mismo", "hoy mismo", "ultimo aviso", "ultima oportunidad", "se acaba el tiempo", "antes de que"]
+_PAYMENT_WORDS = ["bitcoin", "btc", "cripto", "crypto", "usdt", "transferencia", "tarjeta de regalo", "gift card", "monedero", "wallet"]
+_POSSESSION_WORDS = ["tengo tus fotos", "tengo tu informacion", "tengo tus datos", "se donde vives", "tengo acceso a tu", "grabe tu", "capture tu pantalla", "tengo videos tuyos", "tengo imagenes tuyas", "tengo tu contrasena"]
+_PHYSICAL_THREAT_WORDS = ["te voy a matar", "voy a lastimarte", "voy a hacerte dano", "tengo un arma", "voy a ir a tu casa", "se donde vive tu familia"]
+_MINOR_WORDS = ["menor de edad", "mi hijo", "mi hija", "es un nino", "es una nina", "tiene 12 anos", "tiene 13 anos", "tiene 14 anos", "tiene 15 anos", "tiene 16 anos", "tiene 17 anos"]
+_MASS_TEMPLATE_WORDS = ["hola estimado", "querido usuario", "hackee tu", "instale un malware", "tu camara web", "todos tus contactos", "conozco tu contrasena"]
+
+
+def _assess_extortion_risk(text: str) -> dict | None:
+    """Scores BAJO/MODERADO/ALTO/CRÍTICO from concrete phrases in the
+    message, each with a point value that gets shown as the reason.
+    Returns None instead of guessing when the message is too short to
+    contain real signal (e.g. a bare "me estan extorsionando") — no
+    signals detected in 3 words means "not enough info", not "BAJO"."""
+    if len(text.split()) < 12:
+        return None
+
+    factors = []
+    if _URGENCY_RE.search(text) or _contains_any(text, _URGENCY_WORDS):
+        factors.append(("Menciona un plazo u urgencia explícita", 2))
+    if _contains_any(text, _PAYMENT_WORDS):
+        factors.append(("Exige pago por un medio difícil de rastrear (cripto, tarjetas de regalo)", 2))
+    if _contains_any(text, _POSSESSION_WORDS):
+        factors.append(("Afirma poseer evidencia, datos o acceso privado tuyo", 2))
+    if _contains_any(text, _PHYSICAL_THREAT_WORDS):
+        factors.append(("Amenaza de daño físico explícita", 5))
+    if _contains_any(text, _MINOR_WORDS):
+        factors.append(("Hay un menor de edad involucrado", 5))
+    if _contains_any(text, _MASS_TEMPLATE_WORDS):
+        factors.append(("Lenguaje típico de una plantilla de estafa masiva (baja el puntaje: sugiere spam genérico, no un ataque dirigido)", -3))
+
+    total = sum(w for _, w in factors)
+    if total >= 8:
+        level = "CRÍTICO"
+    elif total >= 4:
+        level = "ALTO"
+    elif total >= 1:
+        level = "MODERADO"
+    else:
+        level = "BAJO"
+    return {"level": level, "factors": factors}
+
+
+# --------------------------------------------------------------------------
 # Response builders
 # --------------------------------------------------------------------------
 
-def _safety_response(nickname: str, text: str) -> str:
+def _safety_response(nickname: str, text: str, categories: list[str]) -> str:
     country = _detect_country(text)
     authority = (
         f"Denuncialo ante {COUNTRY_AUTHORITIES[country]}, que es quien tiene jurisdicción para esto en {country.title()}."
         if country else
         "Denuncialo ante la policía o la unidad de delitos informáticos de tu país (decime el país si querés que te diga a quién contactar puntualmente)."
     )
+    situation = " y ".join(categories) if categories else "una situación de riesgo"
+    immediate = bool(IMMEDIATE_RISK_CATEGORIES & set(categories))
+
+    evidence_step = "Guardá toda la evidencia que ya tengas (capturas, mensajes, perfiles, IPs) sin alterarla ni publicarla."
+    no_confront_step = "No confrontes directamente a la persona ni expongas lo que encontraste en redes — podés alertarla, perder evidencia, o exponerte vos."
+    minor_step = "Si hay un menor involucrado o hay riesgo inmediato, priorizá el contacto con la policía por sobre seguir investigando."
+
+    if immediate:
+        # Physical-danger categories (secuestro, trata, abuso/explotación
+        # sexual): emergencies go first, evidence-gathering is secondary —
+        # reversing the usual order matters here, not just re-wording it.
+        recommendations = [
+            "Si hay riesgo físico inmediato, contactá ya a emergencias o a la policía — no esperes a reunir más evidencia.",
+            authority,
+            evidence_step,
+            no_confront_step,
+        ]
+    else:
+        recommendations = [evidence_step, no_confront_step, authority, minor_step]
+
+    assessment = _assess_extortion_risk(text)
+    if assessment:
+        factor_lines = [desc for desc, _ in assessment["factors"]] if assessment["factors"] else ["No se detectaron señales adicionales de agravamiento en el texto compartido — igual puede ser real; esto solo mide lo que el texto por sí solo permite ver."]
+        risk = f"{assessment['level']} — factores detectados:\n" + "\n".join(f"  • {f}" for f in factor_lines)
+    elif immediate:
+        risk = "Situación con posible riesgo físico inmediato — priorizá el paso de emergencias abajo antes que cualquier otra cosa."
+    else:
+        risk = (
+            "NO EVALUABLE con precisión con lo compartido hasta ahora. Si querés que lo evalúe en serio, "
+            "contame (o pegá tal cual) el mensaje que recibiste, qué te exige, en cuánto tiempo, y qué dice tener."
+        )
+
     return _report(
         summary=(
-            f"Mencionaste una situación de riesgo (extorsión, amenaza o acoso), {nickname}. "
+            f"Mencionaste {situation}, {nickname}. "
             "Esto es la guía de seguridad estándar para esta situación — no una evaluación de un caso "
             "concreto, porque todavía no tengo detalles verificables sobre el tuyo."
         ),
-        risk=(
-            "NO EVALUABLE con lo compartido hasta ahora — depende de la urgencia, el plazo impuesto y si "
-            "hay riesgo físico inmediato. Contame más detalles (o los indicadores del contacto — alias, "
-            "email, teléfono) si querés que lo evalúe puntualmente."
-        ),
-        recommendations=[
-            "Guardá toda la evidencia que ya tengas (capturas, mensajes, perfiles, IPs) sin alterarla ni publicarla.",
-            "No confrontes directamente a la persona ni expongas lo que encontraste en redes — podés alertarla, perder evidencia, o exponerte vos.",
-            authority,
-            "Si hay un menor involucrado o hay riesgo inmediato, priorizá el contacto con la policía por sobre seguir investigando.",
-        ],
+        risk=risk,
+        recommendations=recommendations,
         followup="¿Querés que te ayude a organizar lo que ya recopilaste antes de denunciar?",
     )
+
+
+# Short, warm, ONE-question openers — no checklist, no tool talk. These are
+# what Alice says the FIRST time a topic comes up; the full _safety_response
+# (recommendations, risk, "¿querés que te ayude a organizar...?") only comes
+# once the conversation has actually developed (see safety_guidance below).
+# Immediate-risk categories (secuestro, abuso sexual) skip the opener
+# entirely — see safety_guidance — because physical safety can't wait for
+# small talk. Several phrasings per category, picked at random, so this
+# doesn't read as the exact same canned line every time someone opens up
+# about the same kind of situation.
+_SAFETY_OPENERS = {
+    "acoso o stalking": [
+        (
+            "Siento que estés pasando por eso, {nick}. Puedo ayudarte a ordenar lo que está pasando, guardar lo "
+            "que sirva como prueba y pensar cómo protegerte, sin que tengas que saber nada de OSINT. "
+            "¿Está pasando por redes sociales, mensajes, llamadas, correo, en persona, o de varias formas?"
+        ),
+        (
+            "Qué mal que estés pasando por esto, {nick}. Vamos a ir paso a paso: primero entender qué está "
+            "pasando, después ver qué conviene guardar. ¿Te contacta por una red social, por mensajes, "
+            "llamadas, o de más de una forma?"
+        ),
+        (
+            "Entiendo, {nick} — y no tenés que resolverlo sola/o. ¿Me contás por dónde te está llegando esto? "
+            "¿Instagram, WhatsApp, llamadas, en persona, algo así?"
+        ),
+    ],
+    "extorsión o chantaje": [
+        (
+            "Siento que estés pasando por esto, {nick}. No necesitás enfrentarte a esa persona — puedo ayudarte a "
+            "organizar las amenazas, conservar las pruebas y pensar los próximos pasos. "
+            "¿Te están pidiendo dinero, imágenes, acceso a alguna cuenta, o alguna otra cosa?"
+        ),
+        (
+            "Eso es serio, {nick}, y lamento que te esté pasando. No hace falta que la enfrentes vos — vamos a "
+            "documentar bien lo que tenés. Para arrancar: ¿qué te está exigiendo esa persona?"
+        ),
+        (
+            "Entiendo, {nick}. Antes de nada: nunca es tu culpa y no tenés que resolverlo solo/a confrontando a "
+            "quien te escribe. ¿Qué te pide exactamente — plata, fotos, acceso a algo?"
+        ),
+    ],
+    "una amenaza": [
+        (
+            "Eso preocupa, {nick}. Antes que nada: ¿la amenaza es de hacerte daño físicamente, o es más sobre "
+            "publicar o usar información tuya?"
+        ),
+        (
+            "Entiendo, {nick}, y quiero asegurarme de darte el consejo correcto: ¿la amenaza habla de lastimarte "
+            "físicamente, o es sobre exponer algo tuyo (fotos, datos, información)?"
+        ),
+    ],
+}
+
+
+def _safety_opener(nickname: str, categories: list[str]) -> str:
+    for cat in categories:
+        variants = _SAFETY_OPENERS.get(cat)
+        if variants:
+            return random.choice(variants).format(nick=nickname)
+    return _safety_response(nickname, "", categories)
+
+
+def safety_guidance(nickname: str, message: str, categories: list[str], history: list[dict] | None) -> tuple[str, bool]:
+    """Returns (reply, ended_with_case_question) — the second value tells
+    main.py whether to fire the safety_followup SSE event, since only the
+    full response ends on the yes/no "¿querés que te ayude a organizar...?"
+    question; the short opener ends on an open question instead."""
+    text = _norm(message)
+    immediate = bool(IMMEDIATE_RISK_CATEGORIES & set(categories))
+    already_open = _danger_topic_already_open(history)
+    wants_full = _contains_any(text, ["que hago", "pasos a seguir", "recomendaciones", "ayudame a organizar", "consejos", "que puedo hacer", "como me protejo", "como denuncio"])
+    detailed = len(text.split()) >= 12
+
+    if immediate or wants_full or detailed or already_open:
+        channel = _detect_channel(text) if not (detailed or wants_full) else None
+        prefix = f"Por {channel}, entendido. " if channel else ""
+        return prefix + _safety_response(nickname, text, categories), True
+
+    return _safety_opener(nickname, categories), False
 
 
 def _tool_response(nickname: str, matches: list[dict]) -> str:
@@ -591,26 +819,23 @@ def format_crypto_report(nickname: str, d: dict) -> str:
     )
 
 
-def is_danger_message(message: str) -> bool:
-    return _contains_any(_norm(message), DANGER_KEYWORDS)
-
-
-def safety_response(nickname: str, message: str) -> str:
-    return _safety_response(nickname, _norm(message))
-
-
 def respond(message: str, nickname: str) -> str:
     raw = message.strip()
     text = _norm(raw)
 
-    if _contains_any(text, DANGER_KEYWORDS):
-        return _safety_response(nickname, text)
+    categories = _detect_danger_categories(text)
+    if categories:
+        # Reached only as a fallback (main.py routes danger messages through
+        # resolve_danger_categories()/safety_guidance() before ever calling
+        # respond()) — still handled correctly here so respond() is safe to
+        # call on its own.
+        return _safety_response(nickname, text, categories)
 
     if _contains_any(text, THANKS) and len(text) < 40:
         return f"De nada, {nickname}. Cualquier otra cosa que necesites, avisame."
 
     if _contains_any(text, GREETINGS) and len(text) < 30:
-        return f"¡Hola de nuevo, {nickname}! ¿En que investigacion te ayudo?"
+        return f"¡Hola de nuevo, {nickname}! ¿En qué te ayudo?"
 
     if any(p in text for p in ["que podes hacer", "que haces", "ayuda", "help", "que sabes hacer", "funciones"]):
         return _capabilities_response(nickname)

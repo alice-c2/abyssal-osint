@@ -1205,6 +1205,12 @@ async def cell_tower(query: str):
 class ChatRequest(BaseModel):
     nickname: str
     message: str
+    # Prior turns ({"role": "user"|"assistant", "content": str}), sent by
+    # js/alice-chat.js from its own history panel. This endpoint is
+    # otherwise stateless per-request — without this, a follow-up like
+    # "por Instagram" right after "me estan acosando" looks like a brand
+    # new, unrelated one-word message instead of the same conversation.
+    history: list[dict] | None = None
 
 
 async def _run_investigation(plan: dict, nickname: str) -> str:
@@ -1281,8 +1287,16 @@ async def _run_investigation(plan: dict, nickname: str) -> str:
 @app.post("/api/alice/chat")
 async def alice_chat(payload: ChatRequest):
     nickname = payload.nickname or "investigador"
+    history = payload.history or []
     plan = alice_brain.plan_investigation(payload.message)
-    danger = alice_brain.is_danger_message(payload.message)
+    # Resolved against history too, so a short follow-up with no danger
+    # keyword of its own ("por Instagram") still counts if the topic was
+    # opened a turn or two ago — see resolve_danger_categories().
+    danger_categories = alice_brain.resolve_danger_categories(payload.message, history)
+
+    safety_text, safety_full = (None, False)
+    if danger_categories:
+        safety_text, safety_full = alice_brain.safety_guidance(nickname, payload.message, danger_categories, history)
 
     if plan:
         # A concrete indicator (alias, email, IP...) was given alongside a
@@ -1292,10 +1306,10 @@ async def alice_chat(payload: ChatRequest):
         # the safety guidance, instead of the safety text silently
         # swallowing the investigation.
         reply = await _run_investigation(plan, nickname)
-        if danger:
-            reply += "\n\n---\n\n" + alice_brain.safety_response(nickname, payload.message)
-    elif danger:
-        reply = alice_brain.safety_response(nickname, payload.message)
+        if safety_text:
+            reply += "\n\n---\n\n" + safety_text
+    elif safety_text:
+        reply = safety_text
     else:
         reply = alice_brain.respond(payload.message, nickname)
 
@@ -1310,12 +1324,12 @@ async def alice_chat(payload: ChatRequest):
         # finding into a case — see js/alice-chat.js's case flow.
         if plan:
             yield f'data: {json.dumps({"type": "investigation", "query": plan["value"], "kind": plan["type"]})}\n\n'
-        # Safety guidance ends on a yes/no question ("¿Querés que te ayude a
-        # organizar...?") but this endpoint is stateless per-turn — without
-        # this flag the frontend has no way to know a plain "sí" next
-        # message is answering that question rather than a new, unrelated
-        # one-word message it won't understand.
-        if danger:
+        # Only the FULL safety response ends on the yes/no "¿querés que te
+        # ayude a organizar...?" question — the short opener ends on an
+        # open question instead, so a plain "sí" after just the opener
+        # shouldn't be swallowed as an answer to a question that wasn't
+        # actually asked.
+        if safety_full:
             yield f'data: {json.dumps({"type": "safety_followup"})}\n\n'
 
     return StreamingResponse(stream(), media_type="text/event-stream")
